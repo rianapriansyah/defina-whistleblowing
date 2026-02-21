@@ -4,7 +4,7 @@ import './App.css'
 import { AppBar, Box, Drawer, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, styled, Toolbar } from '@mui/material';
 import AppTheme from './theme/AppTheme';
 import MenuIcon from '@mui/icons-material/Menu';
-import Home from './components/home/home';
+import Home from './components/home/Home';
 
 
 interface ListItemLinkProps {
