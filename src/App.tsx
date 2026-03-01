@@ -1,16 +1,36 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import './App.css'
-import { AppBar, Box, Drawer, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, styled, Toolbar } from '@mui/material';
+import './App.css';
+import {
+  AppBar,
+  Box,
+  CircularProgress,
+  Drawer,
+  IconButton,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  styled,
+  Toolbar,
+  Typography,
+  Button,
+} from '@mui/material';
 import AppTheme from './theme/AppTheme';
 import MenuIcon from '@mui/icons-material/Menu';
+import Logout from '@mui/icons-material/Logout';
 import Home from './components/home/Home';
+import Auth from './components/auth/Auth';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 
 interface ListItemLinkProps {
   icon?: React.ReactElement<unknown>;
   primary: string;
   to: string;
+  selected?: boolean;
+  onClick?: () => void;
 }
 
 const menus  = [
@@ -26,32 +46,31 @@ const menus  = [
   // }
 ];
 
-const App: React.FC = () => {
+function ListItemLink(props: ListItemLinkProps) {
+  const { icon, primary, to, selected, onClick } = props;
+  return (
+    <ListItemButton component={Link} to={to} selected={selected} onClick={onClick}>
+      {icon ? <ListItemIcon>{icon}</ListItemIcon> : null}
+      <ListItemText primary={primary} />
+    </ListItemButton>
+  );
+}
+
+function AuthenticatedApp() {
   const Offset = styled('div')(({ theme }) => theme.mixins.toolbar);
   const [open, setOpen] = useState(false);
-  const [selectedMenu, setSelectedMenu]=useState("");
-  
+  const [selectedMenu, setSelectedMenu] = useState('');
+  const { user, signOut } = useAuth();
+
   const toggleDrawer = (newOpen: boolean) => () => {
     setOpen(newOpen);
   };
 
-  function ListItemLink(props: ListItemLinkProps) {
-    const { icon, primary, to } = props;
-  
-    return (
-      <ListItemButton component={Link} to={to} onClick={()=>setSelectedMenu(primary)} selected={selectedMenu===primary}>
-        {icon ? <ListItemIcon>{icon}</ListItemIcon> : null}
-        <ListItemText primary={primary} />
-      </ListItemButton>
-    );
-  }
-
   return (
-    <AppTheme>
-      <Router>
+    <Router>
       <AppBar position="fixed">
         <Toolbar>
-        <IconButton
+          <IconButton
             size="large"
             edge="start"
             color="inherit"
@@ -61,6 +80,13 @@ const App: React.FC = () => {
           >
             <MenuIcon />
           </IconButton>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }} />
+          <Typography variant="body2" sx={{ mr: 1 }}>
+            {user?.email}
+          </Typography>
+          <Button color="inherit" startIcon={<Logout />} onClick={() => signOut()}>
+            Sign out
+          </Button>
         </Toolbar>
       </AppBar>
       <Drawer open={open} onClose={toggleDrawer(false)}>
@@ -68,26 +94,64 @@ const App: React.FC = () => {
           <List>
             {menus.map((menu) => (
               <ListItem key={menu.title} disablePadding>
-                <ListItemLink to={menu.path} primary={menu.title} />
+                <ListItemLink
+                  to={menu.path}
+                  primary={menu.title}
+                  selected={selectedMenu === menu.title}
+                  onClick={() => setSelectedMenu(menu.title)}
+                />
               </ListItem>
             ))}
-            
           </List>
         </Box>
       </Drawer>
       <Offset />
-        <Routes>
-          <Route path="/" element={<Home />} />
-          {/* <Route path="/cars" element={<CarList />} />
-          <Route path="/transactions" element={<ListTransactions />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/expenses" element={<Expenses />} />
-          <Route path="/car-details" element={<CarDetails />} />
-          <Route path="/manual-input" element={<ManualInputForm />} /> */}
-        </Routes>
-      </Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+      </Routes>
+    </Router>
+  );
+}
+
+const App: React.FC = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <AppTheme>
+        <Box
+          sx={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <CircularProgress />
+        </Box>
+      </AppTheme>
+    );
+  }
+
+  if (!user) {
+    return (
+      <AppTheme>
+        <Auth />
+      </AppTheme>
+    );
+  }
+
+  return (
+    <AppTheme>
+      <AuthenticatedApp />
     </AppTheme>
   );
 };
 
-export default App;
+export default function AppWithAuth() {
+  return (
+    <AuthProvider>
+      <App />
+    </AuthProvider>
+  );
+}
