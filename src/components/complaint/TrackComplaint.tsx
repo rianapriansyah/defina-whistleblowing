@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import {
   Alert,
@@ -14,6 +14,8 @@ import {
   TextField,
   Typography,
   Link,
+  useTheme,
+  useMediaQuery,
 } from '@mui/material';
 import { getComplaintByNumberAndPassword } from '../../services/complaintService';
 import { getSeverityColor } from '../../utils/severity';
@@ -47,6 +49,8 @@ function formatDate(value: string | null): string {
 }
 
 export default function TrackComplaint() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [complaintNumber, setComplaintNumber] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -72,6 +76,37 @@ export default function TrackComplaint() {
     }
   };
 
+  const detailRows = useMemo(() => {
+    if (!complaint) return [];
+    return [
+      { label: 'Nomor Pengaduan', value: complaint.complaint_number, bold: true },
+      { label: 'Status', value: statusLabels[complaint.status] ?? complaint.status, bold: true },
+      { label: 'Assigned to', value: complaint.assigned_to || '—' },
+      { label: 'Resolution result', value: complaint.resolution || '—', long: true },
+      { label: 'Updated at', value: formatDate(complaint.updated_at) },
+      { label: 'Resolution date', value: complaint.resolved_at ? formatDate(complaint.resolved_at) : '—' },
+      { label: 'Judul', value: complaint.title },
+      { label: 'Deskripsi', value: complaint.description, long: true },
+      { label: 'Tanggal kejadian', value: complaint.incident_date ? formatDate(complaint.incident_date) : '—' },
+      { label: 'Lokasi', value: complaint.location || '—' },
+      { label: 'Kategori', value: complaint.category || '—' },
+      {
+        label: 'Tingkat keparahan',
+        value: complaint.severity ? (
+          <Chip
+            size="small"
+            label={severityLabels[complaint.severity] ?? complaint.severity}
+            color={getSeverityColor(complaint.severity)}
+            variant="outlined"
+          />
+        ) : (
+          '—'
+        ),
+      },
+      { label: 'Diterima pada', value: formatDate(complaint.created_at) },
+    ];
+  }, [complaint]);
+
   return (
     <Box
       sx={{
@@ -79,10 +114,10 @@ export default function TrackComplaint() {
         display: 'flex',
         alignItems: 'flex-start',
         justifyContent: 'center',
-        p: 2,
+        p: { xs: 1.5, sm: 2 },
       }}
     >
-      <Paper sx={{ maxWidth: 640, width: '100%', p: 3 }}>
+      <Paper sx={{ maxWidth: 640, width: '100%', p: { xs: 2, sm: 3 } }}>
         <Typography variant="h5" component="h1" gutterBottom>
           Lacak Pengaduan
         </Typography>
@@ -123,83 +158,99 @@ export default function TrackComplaint() {
 
         {complaint && (
           <Box sx={{ mt: 4, pt: 3, borderTop: 1, borderColor: 'divider' }}>
-            <Typography variant="h6" gutterBottom>
+            <Typography variant="h6" gutterBottom sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
               Detail Pengaduan
             </Typography>
-            <TableContainer
-              component={Paper}
-              variant="outlined"
-              sx={{
-                borderRadius: 2,
-                overflow: 'hidden',
-                border: '1px solid',
-                borderColor: 'divider',
-                '& .MuiTableCell-root': {
-                  borderBottom: '1px solid',
+            {isMobile ? (
+              <Box
+                sx={{
+                  borderRadius: 2,
+                  border: '1px solid',
                   borderColor: 'divider',
-                  py: 1.5,
-                  px: 2,
-                },
-                '& .MuiTableRow-root:last-child .MuiTableCell-root': {
-                  borderBottom: 'none',
-                },
-              }}
-            >
-              <Table size="small" sx={{ tableLayout: 'fixed' }}>
-                <TableBody>
-                  {[
-                    { label: 'Nomor Pengaduan', value: complaint.complaint_number, bold: true },
-                    { label: 'Status', value: statusLabels[complaint.status] ?? complaint.status, bold: true },
-                    { label: 'Assigned to', value: complaint.assigned_to || '—' },
-                    { label: 'Resolution result', value: complaint.resolution || '—', long: true },
-                    { label: 'Updated at', value: formatDate(complaint.updated_at) },
-                    { label: 'Resolution date', value: complaint.resolved_at ? formatDate(complaint.resolved_at) : '—' },
-                    { label: 'Judul', value: complaint.title },
-                    { label: 'Deskripsi', value: complaint.description, long: true },
-                    { label: 'Tanggal kejadian', value: complaint.incident_date ? formatDate(complaint.incident_date) : '—' },
-                    { label: 'Lokasi', value: complaint.location || '—' },
-                    { label: 'Kategori', value: complaint.category || '—' },
-                    {
-                      label: 'Tingkat keparahan',
-                      value: complaint.severity ? (
-                        <Chip
-                          size="small"
-                          label={severityLabels[complaint.severity] ?? complaint.severity}
-                          color={getSeverityColor(complaint.severity)}
-                          variant="outlined"
-                        />
-                      ) : (
-                        '—'
-                      ),
-                    },
-                    { label: 'Diterima pada', value: formatDate(complaint.created_at) },
-                  ].map(({ label, value, bold, long }) => (
-                    <TableRow key={label}>
-                      <TableCell
-                        variant="head"
-                        sx={{
-                          width: '20%',
-                          fontWeight: 500,
-                          color: 'text.secondary',
-                          backgroundColor: 'action.hover',
-                        }}
-                      >
-                        {label}
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          fontWeight: bold ? 600 : undefined,
-                          textAlign: long ? 'left' : undefined,
-                          verticalAlign: long ? 'top' : 'middle',
-                        }}
-                      >
-                        {value}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                  overflow: 'hidden',
+                }}
+              >
+                {detailRows.map(({ label, value, bold, long }, index) => (
+                  <Box
+                    key={label}
+                    sx={{
+                      py: 1.5,
+                      px: 2,
+                      borderBottom: index < detailRows.length - 1 ? '1px solid' : 'none',
+                      borderColor: 'divider',
+                      backgroundColor: index % 2 === 0 ? 'transparent' : 'action.hover',
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ display: 'block', fontWeight: 500, mb: 0.5 }}
+                    >
+                      {label}
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontWeight: bold ? 600 : undefined,
+                        textAlign: long ? 'left' : undefined,
+                        wordBreak: 'break-word',
+                      }}
+                    >
+                      {value}
+                    </Typography>
+                  </Box>
+                ))}
+              </Box>
+            ) : (
+              <TableContainer
+                component={Paper}
+                variant="outlined"
+                sx={{
+                  borderRadius: 2,
+                  overflow: 'hidden',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  '& .MuiTableCell-root': {
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                    py: 1.5,
+                    px: 2,
+                  },
+                  '& .MuiTableRow-root:last-child .MuiTableCell-root': {
+                    borderBottom: 'none',
+                  },
+                }}
+              >
+                <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                  <TableBody>
+                    {detailRows.map(({ label, value, bold, long }) => (
+                      <TableRow key={label}>
+                        <TableCell
+                          variant="head"
+                          sx={{
+                            width: '42%',
+                            fontWeight: 500,
+                            color: 'text.secondary',
+                            backgroundColor: 'action.hover',
+                          }}
+                        >
+                          {label}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            fontWeight: bold ? 600 : undefined,
+                            textAlign: long ? 'left' : undefined,
+                            verticalAlign: long ? 'top' : 'middle',
+                          }}
+                        >
+                          {value}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
           </Box>
         )}
       </Paper>
