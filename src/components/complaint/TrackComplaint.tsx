@@ -4,12 +4,14 @@ import {
   Alert,
   Box,
   Button,
+  Chip,
   Paper,
   TextField,
   Typography,
   Link,
 } from '@mui/material';
 import { getComplaintByNumberAndPassword } from '../../services/complaintService';
+import { getSeverityColor } from '../../utils/severity';
 import type { Complaint } from '../../types/complaint';
 
 const statusLabels: Record<string, string> = {
@@ -17,6 +19,13 @@ const statusLabels: Record<string, string> = {
   in_review: 'Dalam peninjauan',
   resolved: 'Selesai',
   closed: 'Ditutup',
+};
+
+const severityLabels: Record<string, string> = {
+  low: 'Rendah',
+  medium: 'Sedang',
+  high: 'Tinggi',
+  critical: 'Kritis',
 };
 
 function formatDate(value: string | null): string {
@@ -131,6 +140,38 @@ export default function TrackComplaint() {
               </Box>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
                 <Typography component="dt" variant="body2" color="text.secondary" sx={{ minWidth: 140 }}>
+                  Assigned to:
+                </Typography>
+                <Typography component="dd" variant="body2">
+                  {complaint.assigned_to || '—'}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+                <Typography component="dt" variant="body2" color="text.secondary" sx={{ minWidth: 140 }}>
+                  Resolution result:
+                </Typography>
+                <Typography component="dd" variant="body2" sx={{ flex: 1 }}>
+                  {complaint.resolution || '—'}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+                <Typography component="dt" variant="body2" color="text.secondary" sx={{ minWidth: 140 }}>
+                  Updated at:
+                </Typography>
+                <Typography component="dd" variant="body2">
+                  {formatDate(complaint.updated_at)}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+                <Typography component="dt" variant="body2" color="text.secondary" sx={{ minWidth: 140 }}>
+                  Resolution date:
+                </Typography>
+                <Typography component="dd" variant="body2">
+                  {complaint.resolved_at ? formatDate(complaint.resolved_at) : '—'}
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+                <Typography component="dt" variant="body2" color="text.secondary" sx={{ minWidth: 140 }}>
                   Judul:
                 </Typography>
                 <Typography component="dd" variant="body2">
@@ -174,7 +215,16 @@ export default function TrackComplaint() {
                   Tingkat keparahan:
                 </Typography>
                 <Typography component="dd" variant="body2">
-                  {complaint.severity || '—'}
+                  {complaint.severity ? (
+                    <Chip
+                      size="small"
+                      label={severityLabels[complaint.severity] ?? complaint.severity}
+                      color={getSeverityColor(complaint.severity)}
+                      variant="outlined"
+                    />
+                  ) : (
+                    '—'
+                  )}
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
@@ -185,16 +235,6 @@ export default function TrackComplaint() {
                   {formatDate(complaint.created_at)}
                 </Typography>
               </Box>
-              {complaint.resolution && (
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
-                  <Typography component="dt" variant="body2" color="text.secondary" sx={{ minWidth: 140 }}>
-                    Resolusi:
-                  </Typography>
-                  <Typography component="dd" variant="body2" sx={{ flex: 1 }}>
-                    {complaint.resolution}
-                  </Typography>
-                </Box>
-              )}
             </Box>
           </Box>
         )}

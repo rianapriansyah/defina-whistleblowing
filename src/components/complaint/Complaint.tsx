@@ -62,6 +62,7 @@ const Complaint: React.FC = () => {
   const [reporterName, setReporterName] = useState('');
   const [reporterEmail, setReporterEmail] = useState('');
   const [reporterPhone, setReporterPhone] = useState('');
+  const [reporterNip, setReporterNip] = useState('');
   const [files, setFiles] = useState<File[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -93,6 +94,7 @@ const Complaint: React.FC = () => {
         reporterName: isAnonymous ? undefined : reporterName.trim() || undefined,
         reporterEmail: isAnonymous ? undefined : reporterEmail.trim() || undefined,
         reporterPhone: isAnonymous ? undefined : reporterPhone.trim() || undefined,
+        reporterNip: isAnonymous ? undefined : reporterNip.trim() || undefined,
         files: files.length > 0 ? files : undefined,
       });
 
@@ -110,6 +112,7 @@ const Complaint: React.FC = () => {
       setReporterName('');
       setReporterEmail('');
       setReporterPhone('');
+      setReporterNip('');
       setFiles([]);
       setFileError(null);
       setIsAnonymous(true);
@@ -151,7 +154,11 @@ const Complaint: React.FC = () => {
     category !== '' &&
     severity !== '';
   const reporterFilled =
-    isAnonymous || (reporterName.trim() !== '' && reporterEmail.trim() !== '' && reporterPhone.trim() !== '');
+    isAnonymous ||
+    (reporterName.trim() !== '' &&
+      reporterEmail.trim() !== '' &&
+      reporterPhone.trim() !== '' &&
+      reporterNip.trim() !== '');
   const isFormValid = baseMandatoryFilled && reporterFilled;
 
   const handleDownloadCredentials = (complaintNumber: string, complaintPassword: string) => {
@@ -228,6 +235,13 @@ const Complaint: React.FC = () => {
                     onChange={(e) => setReporterName(e.target.value)}
                   />
                   <TextField
+                    label="Nomor Induk Pegawai (NIP)"
+                    fullWidth
+                    required
+                    value={reporterNip}
+                    onChange={(e) => setReporterNip(e.target.value)}
+                  />
+                  <TextField
                     label="Email"
                     type="email"
                     fullWidth
@@ -254,7 +268,7 @@ const Complaint: React.FC = () => {
               />
 
               <TextField
-                label="Deskripsi"
+                label="Deskripsi pengaduan dan kronologi kejadian"
                 fullWidth
                 required
                 multiline

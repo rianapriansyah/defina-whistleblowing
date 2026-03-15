@@ -11,6 +11,8 @@ export interface ComplaintInsertPayload {
   reporterName?: string;
   reporterEmail?: string;
   reporterPhone?: string;
+  /** Nomor Induk Pegawai (stored in reporter_user_id when non-anonymous). */
+  reporterNip?: string;
   /** Files to upload (jpg, png, pdf only). */
   files?: File[];
 }
