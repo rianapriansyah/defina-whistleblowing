@@ -1,14 +1,11 @@
 import supabase from '../utils/supabase';
 import type { Complaint, ComplaintInsertPayload } from '../types/complaint';
+import { generateComplaintNumber, generateComplaintPassword } from '../generators/complaintGenerators';
+import { hashPassword } from '../helpers/crypto';
+import { isAllowedFile } from '../helpers/fileValidation';
 
-const COMPLAINT_ATTACHMENTS_BUCKET = import.meta.env.VITE_SUPABASE_COMPLAINT_BUCKET ?? 'complaint-attachments';
-const ALLOWED_FILE_TYPES = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf'];
-const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.pdf'];
-
-export function isAllowedFile(file: File): boolean {
-  const ext = '.' + (file.name.split('.').pop()?.toLowerCase() ?? '');
-  return ALLOWED_FILE_TYPES.includes(file.type) && ALLOWED_EXTENSIONS.includes(ext);
-}
+const COMPLAINT_ATTACHMENTS_BUCKET =
+  import.meta.env.VITE_SUPABASE_COMPLAINT_BUCKET ?? 'complaint-attachments';
 
 export async function get_all_complaints() {
   const { data, error } = await supabase.from('complaints').select('*');
@@ -24,27 +21,6 @@ export async function get_complaint_by_complaint_number(complaint_number: string
     .single();
   if (error) throw new Error(error.message);
   return data as Complaint;
-}
-
-function generateComplaintNumber() {
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.floor(Math.random() * 1_000_0)
-    .toString(36)
-    .toUpperCase()
-    .padStart(3, '0');
-  return `CMP-${timestamp}-${random}`;
-}
-
-function generateComplaintPassword() {
-  return Math.random().toString(36).slice(-10);
-}
-
-async function hashPassword(plain: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(plain);
-  const digest = await crypto.subtle.digest('SHA-256', data);
-  const bytes = Array.from(new Uint8Array(digest));
-  return bytes.map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
 /** Fetch complaint by number and verify password; throws if not found or password invalid. */

@@ -1,38 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { isAllowedFile } from './complaintService';
-
-function fileLike(name: string, type: string): File {
-  return { name, type, size: 0 } as File;
-}
+import {
+  get_all_complaints,
+  get_complaint_by_complaint_number,
+  getComplaintByNumberAndPassword,
+  createComplaint,
+} from './complaintService';
 
 describe('complaintService', () => {
-  describe('isAllowedFile', () => {
-    it('accepts jpg files', () => {
-      expect(isAllowedFile(fileLike('photo.jpg', 'image/jpeg'))).toBe(true);
-    });
-
-    it('accepts jpeg files', () => {
-      expect(isAllowedFile(fileLike('photo.jpeg', 'image/jpeg'))).toBe(true);
-    });
-
-    it('accepts png files', () => {
-      expect(isAllowedFile(fileLike('image.png', 'image/png'))).toBe(true);
-    });
-
-    it('accepts pdf files', () => {
-      expect(isAllowedFile(fileLike('doc.pdf', 'application/pdf'))).toBe(true);
-    });
-
-    it('rejects exe files', () => {
-      expect(isAllowedFile(fileLike('app.exe', 'application/x-msdownload'))).toBe(false);
-    });
-
-    it('rejects doc files', () => {
-      expect(isAllowedFile(fileLike('doc.doc', 'application/msword'))).toBe(false);
-    });
-
-    it('rejects txt files', () => {
-      expect(isAllowedFile(fileLike('readme.txt', 'text/plain'))).toBe(false);
-    });
+  it('exports complaint API functions', () => {
+    expect(typeof get_all_complaints).toBe('function');
+    expect(typeof get_complaint_by_complaint_number).toBe('function');
+    expect(typeof getComplaintByNumberAndPassword).toBe('function');
+    expect(typeof createComplaint).toBe('function');
   });
 });

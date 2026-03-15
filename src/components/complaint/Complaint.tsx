@@ -30,7 +30,8 @@ import type { Dayjs } from 'dayjs';
 import 'dayjs/locale/id';
 import DeleteOutline from '@mui/icons-material/DeleteOutline';
 import type { ComplaintSeverity } from '../../types/complaint';
-import { createComplaint, isAllowedFile } from '../../services/complaintService';
+import { createComplaint } from '../../services/complaintService';
+import { isAllowedFile } from '../../helpers/fileValidation';
 
 const ACCEPT_FILE_TYPES = '.jpg,.jpeg,.png,.pdf';
 const MAX_FILE_SIZE_MB = 10;

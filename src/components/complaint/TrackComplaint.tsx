@@ -6,6 +6,11 @@ import {
   Button,
   Chip,
   Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableRow,
   TextField,
   Typography,
   Link,
@@ -121,121 +126,80 @@ export default function TrackComplaint() {
             <Typography variant="h6" gutterBottom>
               Detail Pengaduan
             </Typography>
-            <Box component="dl" sx={{ m: 0 }}>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
-                <Typography component="dt" variant="body2" color="text.secondary" sx={{ minWidth: 140 }}>
-                  Nomor Pengaduan:
-                </Typography>
-                <Typography component="dd" variant="body2" sx={{ fontWeight: 500 }}>
-                  {complaint.complaint_number}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
-                <Typography component="dt" variant="body2" color="text.secondary" sx={{ minWidth: 140 }}>
-                  Status:
-                </Typography>
-                <Typography component="dd" variant="body2" sx={{ fontWeight: 500 }}>
-                  {statusLabels[complaint.status] ?? complaint.status}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
-                <Typography component="dt" variant="body2" color="text.secondary" sx={{ minWidth: 140 }}>
-                  Assigned to:
-                </Typography>
-                <Typography component="dd" variant="body2">
-                  {complaint.assigned_to || '—'}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
-                <Typography component="dt" variant="body2" color="text.secondary" sx={{ minWidth: 140 }}>
-                  Resolution result:
-                </Typography>
-                <Typography component="dd" variant="body2" sx={{ flex: 1 }}>
-                  {complaint.resolution || '—'}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
-                <Typography component="dt" variant="body2" color="text.secondary" sx={{ minWidth: 140 }}>
-                  Updated at:
-                </Typography>
-                <Typography component="dd" variant="body2">
-                  {formatDate(complaint.updated_at)}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
-                <Typography component="dt" variant="body2" color="text.secondary" sx={{ minWidth: 140 }}>
-                  Resolution date:
-                </Typography>
-                <Typography component="dd" variant="body2">
-                  {complaint.resolved_at ? formatDate(complaint.resolved_at) : '—'}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
-                <Typography component="dt" variant="body2" color="text.secondary" sx={{ minWidth: 140 }}>
-                  Judul:
-                </Typography>
-                <Typography component="dd" variant="body2">
-                  {complaint.title}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
-                <Typography component="dt" variant="body2" color="text.secondary" sx={{ minWidth: 140 }}>
-                  Deskripsi:
-                </Typography>
-                <Typography component="dd" variant="body2" sx={{ flex: 1 }}>
-                  {complaint.description}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
-                <Typography component="dt" variant="body2" color="text.secondary" sx={{ minWidth: 140 }}>
-                  Tanggal kejadian:
-                </Typography>
-                <Typography component="dd" variant="body2">
-                  {complaint.incident_date ? formatDate(complaint.incident_date) : '—'}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
-                <Typography component="dt" variant="body2" color="text.secondary" sx={{ minWidth: 140 }}>
-                  Lokasi:
-                </Typography>
-                <Typography component="dd" variant="body2">
-                  {complaint.location || '—'}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
-                <Typography component="dt" variant="body2" color="text.secondary" sx={{ minWidth: 140 }}>
-                  Kategori:
-                </Typography>
-                <Typography component="dd" variant="body2">
-                  {complaint.category || '—'}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
-                <Typography component="dt" variant="body2" color="text.secondary" sx={{ minWidth: 140 }}>
-                  Tingkat keparahan:
-                </Typography>
-                <Typography component="dd" variant="body2">
-                  {complaint.severity ? (
-                    <Chip
-                      size="small"
-                      label={severityLabels[complaint.severity] ?? complaint.severity}
-                      color={getSeverityColor(complaint.severity)}
-                      variant="outlined"
-                    />
-                  ) : (
-                    '—'
-                  )}
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
-                <Typography component="dt" variant="body2" color="text.secondary" sx={{ minWidth: 140 }}>
-                  Diterima pada:
-                </Typography>
-                <Typography component="dd" variant="body2">
-                  {formatDate(complaint.created_at)}
-                </Typography>
-              </Box>
-            </Box>
+            <TableContainer
+              component={Paper}
+              variant="outlined"
+              sx={{
+                borderRadius: 2,
+                overflow: 'hidden',
+                border: '1px solid',
+                borderColor: 'divider',
+                '& .MuiTableCell-root': {
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                  py: 1.5,
+                  px: 2,
+                },
+                '& .MuiTableRow-root:last-child .MuiTableCell-root': {
+                  borderBottom: 'none',
+                },
+              }}
+            >
+              <Table size="small" sx={{ tableLayout: 'fixed' }}>
+                <TableBody>
+                  {[
+                    { label: 'Nomor Pengaduan', value: complaint.complaint_number, bold: true },
+                    { label: 'Status', value: statusLabels[complaint.status] ?? complaint.status, bold: true },
+                    { label: 'Assigned to', value: complaint.assigned_to || '—' },
+                    { label: 'Resolution result', value: complaint.resolution || '—', long: true },
+                    { label: 'Updated at', value: formatDate(complaint.updated_at) },
+                    { label: 'Resolution date', value: complaint.resolved_at ? formatDate(complaint.resolved_at) : '—' },
+                    { label: 'Judul', value: complaint.title },
+                    { label: 'Deskripsi', value: complaint.description, long: true },
+                    { label: 'Tanggal kejadian', value: complaint.incident_date ? formatDate(complaint.incident_date) : '—' },
+                    { label: 'Lokasi', value: complaint.location || '—' },
+                    { label: 'Kategori', value: complaint.category || '—' },
+                    {
+                      label: 'Tingkat keparahan',
+                      value: complaint.severity ? (
+                        <Chip
+                          size="small"
+                          label={severityLabels[complaint.severity] ?? complaint.severity}
+                          color={getSeverityColor(complaint.severity)}
+                          variant="outlined"
+                        />
+                      ) : (
+                        '—'
+                      ),
+                    },
+                    { label: 'Diterima pada', value: formatDate(complaint.created_at) },
+                  ].map(({ label, value, bold, long }) => (
+                    <TableRow key={label}>
+                      <TableCell
+                        variant="head"
+                        sx={{
+                          width: '20%',
+                          fontWeight: 500,
+                          color: 'text.secondary',
+                          backgroundColor: 'action.hover',
+                        }}
+                      >
+                        {label}
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          fontWeight: bold ? 600 : undefined,
+                          textAlign: long ? 'left' : undefined,
+                          verticalAlign: long ? 'top' : 'middle',
+                        }}
+                      >
+                        {value}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </Box>
         )}
       </Paper>
