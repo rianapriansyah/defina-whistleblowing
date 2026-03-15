@@ -4,6 +4,10 @@ import {
   Alert,
   Box,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControl,
   FormControlLabel,
   FormLabel,
@@ -74,15 +78,7 @@ const Complaint: React.FC = () => {
     setError(null);
     setSuccessInfo(null);
 
-    if (!title.trim() || !description.trim()) {
-      setError('Judul dan deskripsi wajib diisi.');
-      return;
-    }
-
-    if (!isAnonymous && !reporterName.trim()) {
-      setError('Nama wajib diisi jika tidak mengirim secara anonim.');
-      return;
-    }
+    if (!isFormValid) return;
 
     setSubmitting(true);
     try {
@@ -147,6 +143,28 @@ const Complaint: React.FC = () => {
     setFileError(null);
   };
 
+  const baseMandatoryFilled =
+    title.trim() !== '' &&
+    description.trim() !== '' &&
+    incidentDate !== null &&
+    location.trim() !== '' &&
+    category !== '' &&
+    severity !== '';
+  const reporterFilled =
+    isAnonymous || (reporterName.trim() !== '' && reporterEmail.trim() !== '' && reporterPhone.trim() !== '');
+  const isFormValid = baseMandatoryFilled && reporterFilled;
+
+  const handleDownloadCredentials = (complaintNumber: string, complaintPassword: string) => {
+    const text = `Nomor Pengaduan: ${complaintNumber}\nPassword Pengaduan: ${complaintPassword}\n\nSimpan informasi ini untuk melacak status pengaduan Anda.`;
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pengaduan-${complaintNumber}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="id">
       <Box
@@ -205,6 +223,7 @@ const Complaint: React.FC = () => {
                   <TextField
                     label="Nama Anda"
                     fullWidth
+                    required
                     value={reporterName}
                     onChange={(e) => setReporterName(e.target.value)}
                   />
@@ -212,12 +231,14 @@ const Complaint: React.FC = () => {
                     label="Email"
                     type="email"
                     fullWidth
+                    required
                     value={reporterEmail}
                     onChange={(e) => setReporterEmail(e.target.value)}
                   />
                   <TextField
                     label="Telepon"
                     fullWidth
+                    required
                     value={reporterPhone}
                     onChange={(e) => setReporterPhone(e.target.value)}
                   />
@@ -244,14 +265,16 @@ const Complaint: React.FC = () => {
 
               <DatePicker
                 label="Tanggal kejadian"
+                required
                 value={incidentDate}
                 onChange={(value) => setIncidentDate(value)}
-                slotProps={{ textField: { fullWidth: true } }}
+                slotProps={{ textField: { fullWidth: true, required: true } }}
               />
 
               <TextField
                 label="Lokasi"
                 fullWidth
+                required
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
               />
@@ -260,9 +283,13 @@ const Complaint: React.FC = () => {
                 select
                 label="Kategori"
                 fullWidth
+                required
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
               >
+                <MenuItem value="">
+                  <em>Pilih kategori</em>
+                </MenuItem>
                 {categoryOptions.map((c) => (
                   <MenuItem key={c} value={c}>
                     {c}
@@ -274,11 +301,15 @@ const Complaint: React.FC = () => {
                 select
                 label="Tingkat keparahan"
                 fullWidth
+                required
                 value={severity}
                 onChange={(e) =>
                   setSeverity(e.target.value as ComplaintSeverity | '')
                 }
               >
+                <MenuItem value="">
+                  <em>Pilih tingkat keparahan</em>
+                </MenuItem>
                 {severityOptions.map((s) => (
                   <MenuItem key={s.value} value={s.value}>
                     {s.label}
@@ -345,32 +376,46 @@ const Complaint: React.FC = () => {
               </Alert>
             )}
 
-            {successInfo && (
-              <Alert
-                severity="success"
-                sx={{ mt: 3 }}
-                onClose={() => setSuccessInfo(null)}
-              >
-                <Typography variant="subtitle1" fontWeight={600}>
-                  Pengaduan berhasil dikirim.
-                </Typography>
-                <Typography variant="body2">
-                  <strong>Nomor Pengaduan:</strong> {successInfo.complaintNumber}
-                </Typography>
-                <Typography variant="body2">
-                  <strong>Password Pengaduan:</strong> {successInfo.complaintPassword}
-                </Typography>
-                <Typography variant="body2" sx={{ mt: 1 }}>
-                  Simpan informasi ini untuk melacak status pengaduan Anda.
-                </Typography>
-              </Alert>
-            )}
+            <Dialog open={!!successInfo} onClose={() => setSuccessInfo(null)} maxWidth="sm" fullWidth>
+              <DialogTitle>Pengaduan berhasil dikirim</DialogTitle>
+              <DialogContent>
+                {successInfo && (
+                  <>
+                    <Typography variant="body1" sx={{ mb: 1 }}>
+                      <strong>Nomor Pengaduan:</strong> {successInfo.complaintNumber}
+                    </Typography>
+                    <Typography variant="body1" sx={{ mb: 2 }}>
+                      <strong>Password Pengaduan:</strong> {successInfo.complaintPassword}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Simpan informasi ini untuk melacak status pengaduan Anda.
+                    </Typography>
+                    <Link
+                      component="button"
+                      type="button"
+                      variant="body2"
+                      onClick={() =>
+                        handleDownloadCredentials(successInfo.complaintNumber, successInfo.complaintPassword)
+                      }
+                      sx={{ cursor: 'pointer' }}
+                    >
+                      Unduh Nomor dan Password Pengaduan
+                    </Link>
+                  </>
+                )}
+              </DialogContent>
+              <DialogActions>
+                <Button type="button" onClick={() => setSuccessInfo(null)} variant="contained" autoFocus>
+                  Tutup
+                </Button>
+              </DialogActions>
+            </Dialog>
 
             <Box sx={{ mt: 3, textAlign: 'right' }}>
               <Button
                 type="submit"
                 variant="contained"
-                disabled={submitting}
+                disabled={!isFormValid || submitting}
               >
                 {submitting ? 'Mengirim…' : 'Kirim pengaduan'}
               </Button>
