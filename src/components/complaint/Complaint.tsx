@@ -265,7 +265,6 @@ const Complaint: React.FC = () => {
 
               <DatePicker
                 label="Tanggal kejadian"
-                required
                 value={incidentDate}
                 onChange={(value) => setIncidentDate(value)}
                 slotProps={{ textField: { fullWidth: true, required: true } }}
