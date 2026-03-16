@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -9,14 +10,22 @@ import {
   Tab,
   Typography,
   Paper,
+  IconButton,
+  InputAdornment,
 } from '@mui/material';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function Auth() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const { signIn, signUp } = useAuth();
+  const from = (location.state as { from?: { pathname: string } })?.from?.pathname ?? '/dashboard';
   const [tab, setTab] = useState(0);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -26,7 +35,7 @@ export default function Auth() {
     setError(null);
     setMessage(null);
     if (!email.trim() || !password) {
-      setError('Email and password are required.');
+      setError('Email dan kata sandi wajib diisi.');
       return;
     }
     setSubmitting(true);
@@ -34,13 +43,14 @@ export default function Auth() {
       if (tab === 0) {
         const { error: err } = await signIn(email, password);
         if (err) setError(err.message);
+        else navigate(from, { replace: true });
       } else {
         const { error: err, alreadyRegistered } = await signUp(email, password);
         if (err) {
           setError(err.message);
-          if (alreadyRegistered) setTab(0); // Switch to Sign in so they can log in
+          if (alreadyRegistered) setTab(0);
         } else {
-          setMessage('Check your email to confirm your account.');
+          setMessage('Periksa email Anda untuk mengonfirmasi akun.');
         }
       }
     } finally {
@@ -63,11 +73,11 @@ export default function Auth() {
           Defina Whistleblowing
         </Typography>
         <Typography variant="body2" color="text.secondary" align="center" sx={{ mb: 2 }}>
-          Sign in to access the platform
+          Masuk untuk mengakses platform
         </Typography>
         <Tabs value={tab} onChange={(_, v) => setTab(v)} centered sx={{ mb: 2 }}>
-          <Tab label="Sign in" />
-          <Tab label="Sign up" />
+          <Tab label="Masuk" />
+          <Tab label="Daftar" />
         </Tabs>
         <form onSubmit={handleSubmit}>
           <TextField
@@ -82,12 +92,28 @@ export default function Auth() {
           />
           <TextField
             fullWidth
-            label="Password"
-            type="password"
+            label="Kata sandi"
+            type={showPassword ? 'text' : 'password'}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             margin="normal"
             autoComplete={tab === 0 ? 'current-password' : 'new-password'}
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label={showPassword ? 'Sembunyikan kata sandi' : 'Tampilkan kata sandi'}
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      onMouseDown={(e) => e.preventDefault()}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
+            }}
           />
           {error && (
             <Alert severity="error" sx={{ mt: 2 }} onClose={() => setError(null)}>
@@ -106,7 +132,7 @@ export default function Auth() {
             sx={{ mt: 3, mb: 2 }}
             disabled={submitting}
           >
-            {submitting ? <CircularProgress size={24} /> : tab === 0 ? 'Sign in' : 'Sign up'}
+            {submitting ? <CircularProgress size={24} /> : tab === 0 ? 'Masuk' : 'Daftar'}
           </Button>
         </form>
       </Paper>

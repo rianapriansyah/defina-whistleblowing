@@ -1,38 +1,39 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Link as RouterLink } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
-import { AppBar, Box, Link, styled, Toolbar, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 import AppTheme from './theme/AppTheme';
+import { AuthProvider } from './contexts/AuthContext';
+import AppLayout from './components/layout/AppLayout';
+import Auth from './components/auth/Auth';
 import Complaint from './components/complaint/Complaint';
 import TrackComplaint from './components/complaint/TrackComplaint';
-
-const Offset = styled('div')(({ theme }) => theme.mixins.toolbar);
+import Dashboard from './components/dashboard/Dashboard';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 
 const App: React.FC = () => {
   return (
     <AppTheme>
-      <Router>
-        <AppBar position="fixed">
-          <Toolbar>
-            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-              Defina Whistleblowing
-            </Typography>
-            <Link component={RouterLink} to="/" color="inherit" underline="hover" sx={{ mr: 2 }}>
-              Kirim Pengaduan
-            </Link>
-            <Link component={RouterLink} to="/lacak-pengaduan" color="inherit" underline="hover">
-              Lacak Pengaduan
-            </Link>
-          </Toolbar>
-        </AppBar>
-        <Offset />
-        <Box component="main">
+      <AuthProvider>
+        <Router>
           <Routes>
-            <Route path="/" element={<Complaint />} />
-            <Route path="/lacak-pengaduan" element={<TrackComplaint />} />
+            <Route path="/login" element={<Auth />} />
+            <Route element={<AppLayout />}>
+              <Route path="/" element={<Complaint />} />
+              <Route path="/lacak-pengaduan" element={<TrackComplaint />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+            </Route>
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
-        </Box>
-      </Router>
+        </Router>
+      </AuthProvider>
     </AppTheme>
   );
 };
