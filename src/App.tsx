@@ -1,7 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
-import { Box } from '@mui/material';
 import AppTheme from './theme/AppTheme';
 import { AuthProvider } from './contexts/AuthContext';
 import AppLayout from './components/layout/AppLayout';
