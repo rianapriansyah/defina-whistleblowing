@@ -8,6 +8,7 @@ import Auth from './components/auth/Auth';
 import Complaint from './components/complaint/Complaint';
 import TrackComplaint from './components/complaint/TrackComplaint';
 import Dashboard from './components/dashboard/Dashboard';
+import InvestigasiAnalisis from './components/investigasi/InvestigasiAnalisis';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 const App: React.FC = () => {
@@ -25,6 +26,14 @@ const App: React.FC = () => {
                 element={
                   <ProtectedRoute>
                     <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/investigasi-analisis"
+                element={
+                  <ProtectedRoute>
+                    <InvestigasiAnalisis />
                   </ProtectedRoute>
                 }
               />

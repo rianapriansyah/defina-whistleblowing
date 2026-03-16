@@ -4,6 +4,7 @@ import {
   get_complaint_by_complaint_number,
   getComplaintByNumberAndPassword,
   createComplaint,
+  searchComplaints,
 } from './complaintService';
 
 describe('complaintService', () => {
@@ -12,5 +13,6 @@ describe('complaintService', () => {
     expect(typeof get_complaint_by_complaint_number).toBe('function');
     expect(typeof getComplaintByNumberAndPassword).toBe('function');
     expect(typeof createComplaint).toBe('function');
+    expect(typeof searchComplaints).toBe('function');
   });
 });

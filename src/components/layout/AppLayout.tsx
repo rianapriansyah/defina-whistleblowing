@@ -22,6 +22,7 @@ import ExpandMore from '@mui/icons-material/ExpandMore';
 import Send from '@mui/icons-material/Send';
 import Search from '@mui/icons-material/Search';
 import DashboardIcon from '@mui/icons-material/Dashboard';
+import FactCheck from '@mui/icons-material/FactCheck';
 import { useAuth } from '../../contexts/AuthContext';
 
 const DRAWER_WIDTH = 260;
@@ -31,6 +32,7 @@ const menuItems = [
   { label: 'Kirim Pengaduan', path: '/', icon: <Send /> },
   { label: 'Lacak Pengaduan', path: '/lacak-pengaduan', icon: <Search /> },
   { label: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },
+  { label: 'Investigasi & Analisis', path: '/investigasi-analisis', icon: <FactCheck /> },
 ];
 
 export default function AppLayout() {
@@ -56,7 +58,7 @@ export default function AppLayout() {
                 key={item.path}
                 component={RouterLink}
                 to={item.path}
-                selected={location.pathname === item.path}
+                selected={location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path))}
                 sx={{ pl: 3 }}
                 onClick={() => setDrawerOpen(false)}
               >

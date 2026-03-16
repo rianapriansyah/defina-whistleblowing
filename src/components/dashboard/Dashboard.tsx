@@ -1,7 +1,16 @@
 import { useEffect, useState } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 import { Box, Card, CardContent, CircularProgress, Typography } from '@mui/material';
 import { get_all_complaints } from '../../services/complaintService';
 import type { Complaint } from '../../types/complaint';
+
+const CARD_LINKS: { to: string; severity?: string }[] = [
+  { to: '/investigasi-analisis' },
+  { to: '/investigasi-analisis?severity=low', severity: 'low' },
+  { to: '/investigasi-analisis?severity=medium', severity: 'medium' },
+  { to: '/investigasi-analisis?severity=high', severity: 'high' },
+  { to: '/investigasi-analisis?severity=critical', severity: 'critical' },
+];
 
 export default function Dashboard() {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
@@ -67,7 +76,7 @@ export default function Dashboard() {
           mt: 2,
         }}
       >
-        <Card sx={{ minWidth: 0, width: '100%' }}>
+        <Card component={RouterLink} to={CARD_LINKS[0].to} sx={{ minWidth: 0, width: '100%', textDecoration: 'none', cursor: 'pointer' }}>
           <CardContent sx={{ py: { xs: 2, sm: 2.5 }, px: { xs: 2, sm: 3 }, '&:last-child': { pb: { xs: 2, sm: 2.5 } } }}>
             <Typography color="text.secondary" variant="body2" gutterBottom sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
               Total Pengaduan
@@ -77,7 +86,7 @@ export default function Dashboard() {
             </Typography>
           </CardContent>
         </Card>
-        <Card sx={{ borderLeft: 4, borderColor: 'success.main', minWidth: 0, width: '100%' }}>
+        <Card component={RouterLink} to={CARD_LINKS[1].to} sx={{ borderLeft: 4, borderColor: 'success.main', minWidth: 0, width: '100%', textDecoration: 'none', cursor: 'pointer' }}>
           <CardContent sx={{ py: { xs: 2, sm: 2.5 }, px: { xs: 2, sm: 3 }, '&:last-child': { pb: { xs: 2, sm: 2.5 } } }}>
             <Typography color="text.secondary" variant="body2" gutterBottom sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
               Rendah
@@ -87,7 +96,7 @@ export default function Dashboard() {
             </Typography>
           </CardContent>
         </Card>
-        <Card sx={{ borderLeft: 4, borderColor: 'info.main', minWidth: 0, width: '100%' }}>
+        <Card component={RouterLink} to={CARD_LINKS[2].to} sx={{ borderLeft: 4, borderColor: 'info.main', minWidth: 0, width: '100%', textDecoration: 'none', cursor: 'pointer' }}>
           <CardContent sx={{ py: { xs: 2, sm: 2.5 }, px: { xs: 2, sm: 3 }, '&:last-child': { pb: { xs: 2, sm: 2.5 } } }}>
             <Typography color="text.secondary" variant="body2" gutterBottom sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
               Sedang
@@ -97,7 +106,7 @@ export default function Dashboard() {
             </Typography>
           </CardContent>
         </Card>
-        <Card sx={{ borderLeft: 4, borderColor: 'warning.main', minWidth: 0, width: '100%' }}>
+        <Card component={RouterLink} to={CARD_LINKS[3].to} sx={{ borderLeft: 4, borderColor: 'warning.main', minWidth: 0, width: '100%', textDecoration: 'none', cursor: 'pointer' }}>
           <CardContent sx={{ py: { xs: 2, sm: 2.5 }, px: { xs: 2, sm: 3 }, '&:last-child': { pb: { xs: 2, sm: 2.5 } } }}>
             <Typography color="text.secondary" variant="body2" gutterBottom sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
               Tinggi
@@ -107,7 +116,7 @@ export default function Dashboard() {
             </Typography>
           </CardContent>
         </Card>
-        <Card sx={{ borderLeft: 4, borderColor: 'error.main', minWidth: 0, width: '100%' }}>
+        <Card component={RouterLink} to={CARD_LINKS[4].to} sx={{ borderLeft: 4, borderColor: 'error.main', minWidth: 0, width: '100%', textDecoration: 'none', cursor: 'pointer' }}>
           <CardContent sx={{ py: { xs: 2, sm: 2.5 }, px: { xs: 2, sm: 3 }, '&:last-child': { pb: { xs: 2, sm: 2.5 } } }}>
             <Typography color="text.secondary" variant="body2" gutterBottom sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}>
               Kritis

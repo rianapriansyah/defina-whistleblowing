@@ -7,10 +7,63 @@ import { isAllowedFile } from '../helpers/fileValidation';
 const COMPLAINT_ATTACHMENTS_BUCKET =
   import.meta.env.VITE_SUPABASE_COMPLAINT_BUCKET ?? 'complaint-attachments';
 
+export interface SearchComplaintsParams {
+  /** Search in complaint_number, title, description, location (case-insensitive). */
+  keyword?: string;
+  /** Filter by incident date (ISO date string, match on that day). */
+  incidentDate?: string;
+  category?: string;
+  severity?: string;
+  /** NIP / reporter_user_id. */
+  nip?: string;
+}
+
 export async function get_all_complaints() {
   const { data, error } = await supabase.from('complaints').select('*');
   if (error) throw new Error(error.message);
   return data as Complaint[];
+}
+
+function matchesKeyword(row: Complaint, keyword: string): boolean {
+  const k = keyword.toLowerCase();
+  const fields = [
+    row.complaint_number ?? '',
+    row.title ?? '',
+    row.description ?? '',
+    row.location ?? '',
+  ];
+  return fields.some((f) => f.toLowerCase().includes(k));
+}
+
+export async function searchComplaints(params: SearchComplaintsParams): Promise<Complaint[]> {
+  let query = supabase
+    .from('complaints')
+    .select('*')
+    .eq('is_deleted', false);
+
+  const { keyword, incidentDate, category, severity, nip } = params;
+
+  if (category && category.trim()) {
+    query = query.eq('category', category.trim());
+  }
+  if (severity && severity.trim()) {
+    query = query.eq('severity', severity.trim().toLowerCase());
+  }
+  if (nip && nip.trim()) {
+    query = query.eq('reporter_user_id', nip.trim());
+  }
+  if (incidentDate && incidentDate.trim()) {
+    const date = incidentDate.trim();
+    query = query.gte('incident_date', date).lte('incident_date', `${date}T23:59:59.999Z`);
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  let list = (data ?? []) as Complaint[];
+  if (keyword && keyword.trim()) {
+    list = list.filter((row) => matchesKeyword(row, keyword.trim()));
+  }
+  return list;
 }
 
 export async function get_complaint_by_complaint_number(complaint_number: string) {
