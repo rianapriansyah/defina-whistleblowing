@@ -29,10 +29,10 @@ const DRAWER_WIDTH = 260;
 const Offset = styled('div')(({ theme }) => theme.mixins.toolbar);
 
 const menuItems = [
-  { label: 'Kirim Pengaduan', path: '/', icon: <Send /> },
-  { label: 'Lacak Pengaduan', path: '/lacak-pengaduan', icon: <Search /> },
-  { label: 'Dashboard', path: '/dashboard', icon: <DashboardIcon /> },
-  { label: 'Investigasi & Analisis', path: '/investigasi-analisis', icon: <FactCheck /> },
+  { label: 'Kirim Pengaduan', path: '/', icon: <Send />, requiresAuth: false },
+  { label: 'Lacak Pengaduan', path: '/lacak-pengaduan', icon: <Search />, requiresAuth: false },
+  { label: 'Dashboard', path: '/dashboard', icon: <DashboardIcon />, requiresAuth: true },
+  { label: 'Investigasi & Analisis', path: '/investigasi-analisis', icon: <FactCheck />, requiresAuth: true },
 ];
 
 export default function AppLayout() {
@@ -53,7 +53,7 @@ export default function AppLayout() {
         </ListItemButton>
         <Collapse in={menuOpen} timeout="auto" unmountOnExit>
           <List component="div" disablePadding>
-            {menuItems.map((item) => (
+            {menuItems.filter((item) => !item.requiresAuth || user).map((item) => (
               <ListItemButton
                 key={item.path}
                 component={RouterLink}
@@ -88,7 +88,7 @@ export default function AppLayout() {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             Defina Whistleblowing
           </Typography>
-          {user && (
+          {user ? (
             <>
               <Typography variant="body2" sx={{ mr: 1, display: { xs: 'none', sm: 'block' } }}>
                 {user.email}
@@ -97,6 +97,10 @@ export default function AppLayout() {
                 Keluar
               </Button>
             </>
+          ) : (
+            <Button color="inherit" component={RouterLink} to="/login" variant="outlined" sx={{ borderColor: 'inherit', color: 'inherit' }}>
+              Masuk / Daftar
+            </Button>
           )}
         </Toolbar>
       </AppBar>

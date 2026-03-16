@@ -286,8 +286,14 @@ export default function InvestigasiAnalisis() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      results.map((row) => (
-                        <TableRow key={row.id} hover>
+                      results.map((row, index) => (
+                        <TableRow
+                          key={row.id}
+                          hover
+                          sx={{
+                            backgroundColor: index % 2 === 0 ? 'grey.100' : 'background.paper',
+                          }}
+                        >
                           <TableCell sx={{ fontWeight: 500 }}>{row.complaint_number}</TableCell>
                           <TableCell>{row.title}</TableCell>
                           <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>

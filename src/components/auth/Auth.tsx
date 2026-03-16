@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -12,6 +12,7 @@ import {
   Paper,
   IconButton,
   InputAdornment,
+  Link,
 } from '@mui/material';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
@@ -134,6 +135,11 @@ export default function Auth() {
           >
             {submitting ? <CircularProgress size={24} /> : tab === 0 ? 'Masuk' : 'Daftar'}
           </Button>
+          <Box sx={{ textAlign: 'center' }}>
+            <Link component={RouterLink} to="/" underline="hover" sx={{ fontSize: '0.875rem' }}>
+              Kirim pengaduan tanpa masuk
+            </Link>
+          </Box>
         </form>
       </Paper>
     </Box>
