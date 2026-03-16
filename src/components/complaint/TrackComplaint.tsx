@@ -5,6 +5,8 @@ import {
   Box,
   Button,
   Chip,
+  IconButton,
+  InputAdornment,
   Paper,
   Table,
   TableBody,
@@ -17,6 +19,8 @@ import {
   useTheme,
   useMediaQuery,
 } from '@mui/material';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { getComplaintByNumberAndPassword } from '../../services/complaintService';
 import { getSeverityColor } from '../../utils/severity';
 import type { Complaint } from '../../types/complaint';
@@ -53,6 +57,7 @@ export default function TrackComplaint() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [complaintNumber, setComplaintNumber] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [complaint, setComplaint] = useState<Complaint | null>(null);
@@ -135,10 +140,26 @@ export default function TrackComplaint() {
           />
           <TextField
             label="Password Pengaduan"
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             fullWidth
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            slotProps={{
+              input: {
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label={showPassword ? 'Sembunyikan password' : 'Tampilkan password'}
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      onMouseDown={(e) => e.preventDefault()}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              },
+            }}
           />
           {error && (
             <Alert severity="error" onClose={() => setError(null)}>
