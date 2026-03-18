@@ -1,5 +1,5 @@
 import supabase from '../utils/supabase';
-import type { Complaint, ComplaintInsertPayload } from '../types/complaint';
+import type { Complaint, ComplaintAuditLog, ComplaintInsertPayload } from '../types/complaint';
 import { generateComplaintNumber, generateComplaintPassword } from '../generators/complaintGenerators';
 import { hashPassword } from '../helpers/crypto';
 import { isAllowedFile } from '../helpers/fileValidation';
@@ -160,4 +160,73 @@ export async function createComplaint(payload: ComplaintInsertPayload) {
     complaintNumber,
     complaintPassword,
   };
+}
+
+export async function getComplaintAuditLogs(complaintId: string): Promise<ComplaintAuditLog[]> {
+  const { data, error } = await supabase
+    .from('complaint_audit_logs')
+    .select('*')
+    .eq('complaint_id', complaintId)
+    .order('created_at', { ascending: false })
+    .limit(10);
+
+  if (error) throw new Error(error.message);
+  return (data ?? []) as ComplaintAuditLog[];
+}
+
+export interface ComplaintFollowUpInput {
+  complaintId: string;
+  nextStatus?: string;
+  comment?: string;
+}
+
+export async function followUpComplaint(input: ComplaintFollowUpInput): Promise<void> {
+  const { complaintId, nextStatus, comment } = input;
+  const trimmedComment = comment?.trim() ?? '';
+
+  if (!nextStatus && !trimmedComment) {
+    throw new Error('Pilih status baru atau isi komentar.');
+  }
+
+  let currentStatus: string | null = null;
+  if (nextStatus) {
+    const { data: current, error: currentErr } = await supabase
+      .from('complaints')
+      .select('status')
+      .eq('id', complaintId)
+      .single();
+    if (currentErr) throw new Error(currentErr.message);
+    currentStatus = (current as { status: string }).status;
+  }
+
+  const { data: auth } = await supabase.auth.getUser();
+  const performedBy = auth.user?.id ?? null;
+
+  if (nextStatus) {
+    const { error: updateErr } = await supabase
+      .from('complaints')
+      .update({ status: nextStatus })
+      .eq('id', complaintId);
+    if (updateErr) throw new Error(updateErr.message);
+  }
+
+  const action = nextStatus ? 'status_update' : 'comment';
+  const descParts: string[] = [];
+  if (nextStatus) {
+    descParts.push(
+      `Status: ${currentStatus ?? '—'} → ${nextStatus}`
+    );
+  }
+  if (trimmedComment) {
+    descParts.push(trimmedComment);
+  }
+  const description = descParts.join('\n\n');
+
+  const { error: logErr } = await supabase.from('complaint_audit_logs').insert({
+    complaint_id: complaintId,
+    action,
+    description,
+    performed_by: performedBy,
+  });
+  if (logErr) throw new Error(logErr.message);
 }

@@ -41,3 +41,12 @@ export interface Complaint {
   is_deleted: boolean | null;
 }
 
+export interface ComplaintAuditLog {
+  id: string;
+  complaint_id: string | null;
+  action: string | null;
+  description: string | null;
+  performed_by: string | null;
+  created_at: string | null;
+}
+

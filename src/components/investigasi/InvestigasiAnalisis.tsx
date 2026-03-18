@@ -11,12 +11,15 @@ import {
   Paper,
   TextField,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import Search from '@mui/icons-material/Search';
 import FilterAltOff from '@mui/icons-material/FilterAltOff';
+import Draw from '@mui/icons-material/Draw';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -25,6 +28,7 @@ import 'dayjs/locale/id';
 import { searchComplaints } from '../../services/complaintService';
 import { getSeverityColor } from '../../utils/severity';
 import type { Complaint } from '../../types/complaint';
+import TindakanPengaduanModal from './TindakanPengaduanModal';
 
 const CATEGORY_OPTIONS = ['Penipuan', 'Korupsi', 'Pelecehan', 'Diskriminasi', 'Keselamatan', 'Lainnya'];
 
@@ -58,6 +62,8 @@ function formatDate(value: string | null): string {
 }
 
 export default function InvestigasiAnalisis() {
+  const theme = useTheme();
+  const showActionHeader = useMediaQuery(theme.breakpoints.up('lg'));
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [keyword, setKeyword] = useState('');
@@ -70,6 +76,9 @@ export default function InvestigasiAnalisis() {
   const [results, setResults] = useState<Complaint[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
+
+  const [actionOpen, setActionOpen] = useState(false);
+  const [activeComplaint, setActiveComplaint] = useState<Complaint | null>(null);
 
   const urlQueryKey = searchParams.toString();
 
@@ -124,6 +133,16 @@ export default function InvestigasiAnalisis() {
       setLoading(false);
     }
   }, [keyword, incidentDate, category, severity, nip]);
+
+  const openAction = (row: Complaint) => {
+    setActiveComplaint(row);
+    setActionOpen(true);
+  };
+
+  const closeAction = () => {
+    setActionOpen(false);
+    setActiveComplaint(null);
+  };
 
   const handleClearFilters = () => {
     setKeyword('');
@@ -224,8 +243,41 @@ export default function InvestigasiAnalisis() {
         width: 130,
         valueGetter: (_v, row) => formatDate(row.created_at),
       },
+      {
+        field: '__actions',
+        headerName: showActionHeader ? 'Tindakan' : '',
+        width: showActionHeader ? 132 : 72,
+        sortable: false,
+        filterable: false,
+        disableColumnMenu: true,
+        renderCell: (params) => (
+          <Button
+            variant="outlined"
+            color="primary"
+            size="small"
+            aria-label="Tindakan"
+            startIcon={showActionHeader ? <Draw fontSize="small" /> : undefined}
+            onClick={(e) => {
+              e.stopPropagation();
+              openAction(params.row as Complaint);
+            }}
+            sx={{
+              minWidth: showActionHeader ? undefined : 40,
+              px: showActionHeader ? 1.25 : 0.75,
+              py: 0.5,
+              borderRadius: 2,
+              textTransform: 'none',
+              fontWeight: 600,
+              boxShadow: (t) => (showActionHeader ? t.shadows[1] : 0),
+              '&:hover': { boxShadow: (t) => t.shadows[2] },
+            }}
+          >
+            {showActionHeader ? 'Tindakan' : <Draw fontSize="small" />}
+          </Button>
+        ),
+      },
     ],
-    []
+    [showActionHeader]
   );
 
   const rows = useMemo(
@@ -380,7 +432,6 @@ export default function InvestigasiAnalisis() {
             {loading ? 'Memuat…' : `${results.length} pengaduan`}
           </Typography>
           <Paper
-            variant="outlined"
             sx={{
               width: '100%',
               minWidth: 0,
@@ -414,6 +465,13 @@ export default function InvestigasiAnalisis() {
             />
           </Paper>
         </Box>
+
+        <TindakanPengaduanModal
+          open={actionOpen}
+          complaint={activeComplaint}
+          onClose={closeAction}
+          onSaved={doSearch}
+        />
       </Box>
     </LocalizationProvider>
   );
