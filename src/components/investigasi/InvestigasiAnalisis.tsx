@@ -11,6 +11,7 @@ import {
   Paper,
   TextField,
   Typography,
+  useTheme,
 } from '@mui/material';
 import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import ExpandLess from '@mui/icons-material/ExpandLess';
@@ -22,6 +23,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import type { Dayjs } from 'dayjs';
 import 'dayjs/locale/id';
+import { alpha } from '@mui/material/styles';
 import { searchComplaints } from '../../services/complaintService';
 import { getSeverityColor } from '../../utils/severity';
 import type { Complaint } from '../../types/complaint';
@@ -58,6 +60,7 @@ function formatDate(value: string | null): string {
 }
 
 export default function InvestigasiAnalisis() {
+  const theme = useTheme();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [keyword, setKeyword] = useState('');
@@ -385,10 +388,9 @@ export default function InvestigasiAnalisis() {
               width: '100%',
               minWidth: 0,
               borderRadius: 2,
-              overflow: 'hidden',
-              '& .MuiDataGrid-row:nth-of-type(even)': {
-                backgroundColor: 'grey.100',
-              },
+              overflow: 'auto',
+              display: 'flex',
+              flexDirection: 'column',
             }}
           >
             <DataGrid
@@ -398,12 +400,93 @@ export default function InvestigasiAnalisis() {
               paginationModel={paginationModel}
               onPaginationModelChange={setPaginationModel}
               pageSizeOptions={[...PAGE_SIZE_OPTIONS]}
-              disableRowSelectionOnClick
-              autoHeight
+              checkboxSelection
+              disableRowSelectionOnClick={false}
+              autoHeight={false}
+              getRowClassName={(params) =>
+                theme.palette.mode === 'light' && params.indexRelativeToCurrentPage % 2 === 0
+                  ? 'investigasi-row--stripe'
+                  : ''
+              }
               sx={{
                 minWidth: 700,
+                width: '100%',
                 border: 'none',
-                '& .MuiDataGrid-columnHeaders': { backgroundColor: 'action.hover' },
+                color: 'text.primary',
+                /* Bounded height: scroll rows inside grid, footer always visible (MUI demo pattern) */
+                height: {
+                  xs: 'min(420px, calc(100vh - 240px))',
+                  sm: 'min(520px, calc(100vh - 220px))',
+                  md: 'min(560px, calc(100vh - 200px))',
+                },
+                minHeight: 320,
+                '& .MuiDataGrid-main': { outline: 'none' },
+                '& .MuiDataGrid-columnHeaders': {
+                  backgroundColor:
+                    theme.palette.mode === 'dark' ? theme.palette.grey[900] : theme.palette.grey[100],
+                  color: 'text.primary',
+                  borderBottomColor: 'divider',
+                },
+                '& .MuiDataGrid-columnHeaderTitle': { fontWeight: 600 },
+                /* Dark: uniform dark rows + readable text (like MUI DataGrid demo) */
+                '& .MuiDataGrid-row': {
+                  backgroundColor:
+                    theme.palette.mode === 'dark'
+                      ? theme.palette.grey[900]
+                      : theme.palette.background.paper,
+                  color: 'text.primary',
+                },
+                '& .MuiDataGrid-row.investigasi-row--stripe': {
+                  backgroundColor: theme.palette.grey[100],
+                },
+                '& .MuiDataGrid-cell': {
+                  color: 'text.primary',
+                  borderColor: 'divider',
+                },
+                '& .MuiDataGrid-row:hover': {
+                  backgroundColor:
+                    theme.palette.mode === 'dark'
+                      ? alpha(theme.palette.common.white, 0.06)
+                      : theme.palette.action.hover,
+                },
+                '& .MuiDataGrid-row.investigasi-row--stripe:hover': {
+                  backgroundColor:
+                    theme.palette.mode === 'dark'
+                      ? alpha(theme.palette.common.white, 0.06)
+                      : alpha(theme.palette.grey[100], 0.85),
+                },
+                /* Selected: bluish tint like MUI X reference */
+                '& .MuiDataGrid-row.Mui-selected': {
+                  backgroundColor: `${alpha(theme.palette.primary.main, theme.palette.mode === 'dark' ? 0.22 : 0.1)} !important`,
+                },
+                '& .MuiDataGrid-row.Mui-selected:hover': {
+                  backgroundColor: `${alpha(theme.palette.primary.main, theme.palette.mode === 'dark' ? 0.3 : 0.14)} !important`,
+                },
+                '& .MuiDataGrid-footerContainer': {
+                  borderTopColor: 'divider',
+                  backgroundColor:
+                    theme.palette.mode === 'dark' ? theme.palette.grey[900] : theme.palette.background.paper,
+                  minHeight: { xs: 56, sm: 52 },
+                  py: { xs: 1, sm: 0 },
+                  display: 'flex',
+                  alignItems: 'center',
+                  flexShrink: 0,
+                },
+                '& .MuiTablePagination-root': {
+                  color: 'text.primary',
+                  width: '100%',
+                  overflow: 'visible',
+                },
+                '& .MuiTablePagination-toolbar': {
+                  flexWrap: 'wrap',
+                  justifyContent: { xs: 'center', sm: 'flex-end' },
+                  gap: 1,
+                  minHeight: { xs: 48, sm: 52 },
+                  px: { xs: 1, sm: 2 },
+                },
+                '& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows': {
+                  color: 'text.secondary',
+                },
               }}
               slotProps={{
                 pagination: {
