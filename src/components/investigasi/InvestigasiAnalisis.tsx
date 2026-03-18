@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -9,18 +9,14 @@ import {
   InputAdornment,
   MenuItem,
   Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TextField,
   Typography,
 } from '@mui/material';
+import { DataGrid, type GridColDef } from '@mui/x-data-grid';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import Search from '@mui/icons-material/Search';
+import FilterAltOff from '@mui/icons-material/FilterAltOff';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -46,6 +42,8 @@ const STATUS_LABELS: Record<string, string> = {
   closed: 'Ditutup',
 };
 
+const PAGE_SIZE_OPTIONS = [10, 20, 30] as const;
+
 function formatDate(value: string | null): string {
   if (!value) return '—';
   try {
@@ -61,21 +59,53 @@ function formatDate(value: string | null): string {
 
 export default function InvestigasiAnalisis() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [keyword, setKeyword] = useState('');
   const [expanded, setExpanded] = useState(false);
   const [incidentDate, setIncidentDate] = useState<Dayjs | null>(null);
   const [category, setCategory] = useState('');
   const [severity, setSeverity] = useState('');
   const [nip, setNip] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<Complaint[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [searched, setSearched] = useState(false);
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 10 });
+
+  const urlQueryKey = searchParams.toString();
+
+  useEffect(() => {
+    const sp = new URLSearchParams(urlQueryKey);
+    const sev = sp.get('severity') ?? '';
+    const cat = sp.get('category') ?? '';
+    setSeverity(sev);
+    setCategory(cat);
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await searchComplaints({
+          severity: sev || undefined,
+          category: cat || undefined,
+        });
+        if (!cancelled) setResults(data);
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Gagal memuat data.');
+          setResults([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [urlQueryKey]);
 
   const doSearch = useCallback(async () => {
     setError(null);
     setLoading(true);
-    setSearched(true);
     try {
       const incidentDateStr = incidentDate ? incidentDate.format('YYYY-MM-DD') : undefined;
       const data = await searchComplaints({
@@ -86,6 +116,7 @@ export default function InvestigasiAnalisis() {
         nip: nip.trim() || undefined,
       });
       setResults(data);
+      setPaginationModel((m) => ({ ...m, page: 0 }));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Gagal memuat hasil pencarian.');
       setResults([]);
@@ -94,36 +125,113 @@ export default function InvestigasiAnalisis() {
     }
   }, [keyword, incidentDate, category, severity, nip]);
 
-  useEffect(() => {
-    const severityParam = searchParams.get('severity');
-    const categoryParam = searchParams.get('category');
-    if (severityParam) setSeverity(severityParam);
-    if (categoryParam) setCategory(categoryParam);
-  }, [searchParams]);
-
-  useEffect(() => {
-    const severityParam = searchParams.get('severity');
-    const categoryParam = searchParams.get('category');
-    if (!severityParam && !categoryParam) return;
-    setSearched(true);
+  const handleClearFilters = () => {
+    setKeyword('');
+    setIncidentDate(null);
+    setCategory('');
+    setSeverity('');
+    setNip('');
+    setExpanded(false);
+    setPaginationModel({ page: 0, pageSize: 10 });
+    const path = '/investigasi-analisis';
+    const hadQuery = searchParams.toString().length > 0;
+    if (hadQuery) {
+      navigate(path, { replace: true });
+      return;
+    }
     setLoading(true);
     setError(null);
-    searchComplaints({
-      severity: severityParam || undefined,
-      category: categoryParam || undefined,
-    })
-      .then(setResults)
-      .catch((err) => {
-        setError(err instanceof Error ? err.message : 'Gagal memuat hasil pencarian.');
+    void (async () => {
+      try {
+        const data = await searchComplaints({});
+        setResults(data);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Gagal memuat data.');
         setResults([]);
-      })
-      .finally(() => setLoading(false));
-  }, []);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     doSearch();
   };
+
+  const columns: GridColDef[] = useMemo(
+    () => [
+      { field: 'complaint_number', headerName: 'Nomor Pengaduan', width: 160, minWidth: 140 },
+      { field: 'title', headerName: 'Judul', flex: 1, minWidth: 140 },
+      {
+        field: 'description',
+        headerName: 'Deskripsi',
+        flex: 1,
+        minWidth: 180,
+        valueGetter: (_v, row) => row.description || '—',
+      },
+      {
+        field: 'location',
+        headerName: 'Lokasi',
+        width: 130,
+        valueGetter: (_v, row) => row.location || '—',
+      },
+      {
+        field: 'incident_date',
+        headerName: 'Tanggal Kejadian',
+        width: 130,
+        valueGetter: (_v, row) => formatDate(row.incident_date),
+      },
+      {
+        field: 'category',
+        headerName: 'Kategori',
+        width: 120,
+        valueGetter: (_v, row) => row.category || '—',
+      },
+      {
+        field: 'severity',
+        headerName: 'Tingkat Keparahan',
+        width: 150,
+        renderCell: (params) => {
+          const s = params.row.severity as string | null;
+          if (!s) return '—';
+          return (
+            <Chip
+              size="small"
+              label={SEVERITY_OPTIONS.find((x) => x.value === s)?.label ?? s}
+              color={getSeverityColor(s)}
+              variant="outlined"
+              sx={{ my: 0.5 }}
+            />
+          );
+        },
+      },
+      {
+        field: 'status',
+        headerName: 'Status',
+        width: 130,
+        valueGetter: (_v, row) => STATUS_LABELS[row.status] ?? row.status,
+      },
+      {
+        field: 'reporter_user_id',
+        headerName: 'NIP',
+        width: 120,
+        valueGetter: (_v, row) => row.reporter_user_id || '—',
+      },
+      {
+        field: 'created_at',
+        headerName: 'Diterima pada',
+        width: 130,
+        valueGetter: (_v, row) => formatDate(row.created_at),
+      },
+    ],
+    []
+  );
+
+  const rows = useMemo(
+    () => results.map((r) => ({ ...r, id: r.id })),
+    [results]
+  );
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="id">
@@ -142,13 +250,22 @@ export default function InvestigasiAnalisis() {
 
         <Paper variant="outlined" sx={{ p: 2, mb: 3, borderRadius: 2 }}>
           <Box component="form" onSubmit={handleSubmit}>
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1.5, alignItems: { xs: 'stretch', sm: 'flex-start' } }}>
+            <Box
+              sx={{
+                display: 'flex',
+                flexDirection: { xs: 'column', sm: 'row' },
+                gap: 1.5,
+                alignItems: { xs: 'stretch', sm: 'flex-start' },
+                flexWrap: 'wrap',
+              }}
+            >
               <TextField
                 fullWidth
                 size="small"
                 placeholder="Cari Nomor Aduan, Judul, Deskripsi, Lokasi..."
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
+                sx={{ flex: { sm: 1 }, minWidth: { sm: 200 } }}
                 slotProps={{
                   input: {
                     startAdornment: (
@@ -170,9 +287,21 @@ export default function InvestigasiAnalisis() {
                   },
                 }}
               />
-              <Button type="submit" variant="contained" disabled={loading} sx={{ minWidth: { xs: '100%', sm: 120 } }}>
-                {loading ? 'Mencari…' : 'Cari'}
-              </Button>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                <Button type="submit" variant="contained" disabled={loading} sx={{ minWidth: 100 }}>
+                  {loading ? 'Mencari…' : 'Cari'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outlined"
+                  color="secondary"
+                  startIcon={<FilterAltOff />}
+                  disabled={loading}
+                  onClick={handleClearFilters}
+                >
+                  Hapus filter
+                </Button>
+              </Box>
             </Box>
 
             <Collapse in={expanded} timeout="auto">
@@ -246,86 +375,53 @@ export default function InvestigasiAnalisis() {
           </Typography>
         )}
 
-        {searched && (
-          <Box sx={{ width: '100%', minWidth: 0 }}>
-            <Typography variant="subtitle1" sx={{ mb: 1.5 }}>
-              {loading ? 'Memuat…' : `Ditemukan ${results.length} hasil`}
-            </Typography>
-            <Paper
-              variant="outlined"
+        <Box sx={{ width: '100%', minWidth: 0 }}>
+          <Typography variant="subtitle1" sx={{ mb: 1.5 }}>
+            {loading ? 'Memuat…' : `${results.length} pengaduan`}
+          </Typography>
+          <Paper
+            variant="outlined"
+            sx={{
+              width: '100%',
+              minWidth: 0,
+              borderRadius: 2,
+              overflow: 'hidden',
+              '& .MuiDataGrid-row:nth-of-type(even)': {
+                backgroundColor: 'grey.100',
+              },
+            }}
+          >
+            <DataGrid
+              rows={rows}
+              columns={columns}
+              loading={loading}
+              paginationModel={paginationModel}
+              onPaginationModelChange={setPaginationModel}
+              pageSizeOptions={[...PAGE_SIZE_OPTIONS]}
+              disableRowSelectionOnClick
+              autoHeight
               sx={{
-                width: '100%',
-                minWidth: 0,
-                overflowX: 'auto',
-                overflowY: 'visible',
-                WebkitOverflowScrolling: 'touch',
-                borderRadius: 2,
+                minWidth: 700,
+                border: 'none',
+                '& .MuiDataGrid-columnHeaders': { backgroundColor: 'action.hover' },
               }}
-            >
-              <TableContainer sx={{ minWidth: 700, overflow: 'visible' }}>
-                <Table size="small" stickyHeader>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Nomor Pengaduan</TableCell>
-                      <TableCell>Judul</TableCell>
-                      <TableCell>Deskripsi</TableCell>
-                      <TableCell>Lokasi</TableCell>
-                      <TableCell>Tanggal Kejadian</TableCell>
-                      <TableCell>Kategori</TableCell>
-                      <TableCell>Tingkat Keparahan</TableCell>
-                      <TableCell>Status</TableCell>
-                      <TableCell>NIP</TableCell>
-                      <TableCell>Diterima pada</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {results.length === 0 && !loading ? (
-                      <TableRow>
-                        <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
-                          Tidak ada data
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      results.map((row, index) => (
-                        <TableRow
-                          key={row.id}
-                          hover
-                          sx={{
-                            backgroundColor: index % 2 === 0 ? 'grey.100' : 'background.paper',
-                          }}
-                        >
-                          <TableCell sx={{ fontWeight: 500 }}>{row.complaint_number}</TableCell>
-                          <TableCell>{row.title}</TableCell>
-                          <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {row.description || '—'}
-                          </TableCell>
-                          <TableCell>{row.location || '—'}</TableCell>
-                          <TableCell>{formatDate(row.incident_date)}</TableCell>
-                          <TableCell>{row.category || '—'}</TableCell>
-                          <TableCell>
-                            {row.severity ? (
-                              <Chip
-                                size="small"
-                                label={SEVERITY_OPTIONS.find((s) => s.value === row.severity)?.label ?? row.severity}
-                                color={getSeverityColor(row.severity)}
-                                variant="outlined"
-                              />
-                            ) : (
-                              '—'
-                            )}
-                          </TableCell>
-                          <TableCell>{STATUS_LABELS[row.status] ?? row.status}</TableCell>
-                          <TableCell>{row.reporter_user_id || '—'}</TableCell>
-                          <TableCell>{formatDate(row.created_at)}</TableCell>
-                        </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Paper>
-          </Box>
-        )}
+              slotProps={{
+                pagination: {
+                  labelRowsPerPage: 'Baris per halaman:',
+                  labelDisplayedRows: ({
+                    from,
+                    to,
+                    count,
+                  }: {
+                    from: number;
+                    to: number;
+                    count: number;
+                  }) => `${from}–${to} dari ${count !== -1 ? count : `lebih dari ${to}`}`,
+                },
+              }}
+            />
+          </Paper>
+        </Box>
       </Box>
     </LocalizationProvider>
   );
