@@ -1,5 +1,11 @@
 import supabase from '../utils/supabase';
-import type { Complaint, ComplaintAuditLog, ComplaintInsertPayload } from '../types/complaint';
+import type {
+  Complaint,
+  ComplaintAuditLog,
+  ComplaintInsertPayload,
+  ComplaintStatus,
+  Profile,
+} from '../types/complaint';
 import { generateComplaintNumber, generateComplaintPassword } from '../generators/complaintGenerators';
 import { hashPassword } from '../helpers/crypto';
 import { isAllowedFile } from '../helpers/fileValidation';
@@ -162,6 +168,23 @@ export async function createComplaint(payload: ComplaintInsertPayload) {
   };
 }
 
+export async function getComplaintStatuses(): Promise<ComplaintStatus[]> {
+  const { data, error } = await supabase
+    .from('complaint_statuses')
+    .select('*')
+    .order('sequence', { ascending: true, nullsFirst: false });
+
+  if (error) throw new Error(error.message);
+  return (data ?? []) as ComplaintStatus[];
+}
+
+export async function getProfiles(): Promise<Profile[]> {
+  const { data, error } = await supabase.from('profiles').select('*').order('id', { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return (data ?? []) as Profile[];
+}
+
 export async function getComplaintAuditLogs(complaintId: string): Promise<ComplaintAuditLog[]> {
   const { data, error } = await supabase
     .from('complaint_audit_logs')
@@ -178,44 +201,49 @@ export interface ComplaintFollowUpInput {
   complaintId: string;
   nextStatus?: string;
   comment?: string;
+  /** Assign complaint to this user (profile.user_id). */
+  assignedTo?: string | null;
 }
 
 export async function followUpComplaint(input: ComplaintFollowUpInput): Promise<void> {
-  const { complaintId, nextStatus, comment } = input;
+  const { complaintId, nextStatus, comment, assignedTo } = input;
   const trimmedComment = comment?.trim() ?? '';
 
-  if (!nextStatus && !trimmedComment) {
-    throw new Error('Pilih status baru atau isi komentar.');
+  if (!nextStatus && !trimmedComment && assignedTo === undefined) {
+    throw new Error('Pilih status baru, isi komentar, atau tetapkan penugasan.');
   }
 
   let currentStatus: string | null = null;
-  if (nextStatus) {
-    const { data: current, error: currentErr } = await supabase
-      .from('complaints')
-      .select('status')
-      .eq('id', complaintId)
-      .single();
-    if (currentErr) throw new Error(currentErr.message);
-    currentStatus = (current as { status: string }).status;
-  }
+  const { data: currentRow, error: currentErr } = await supabase
+    .from('complaints')
+    .select('status, assigned_to')
+    .eq('id', complaintId)
+    .single();
+  if (currentErr) throw new Error(currentErr.message);
+  const current = currentRow as { status: string; assigned_to: string | null };
+  currentStatus = current.status;
 
   const { data: auth } = await supabase.auth.getUser();
   const performedBy = auth.user?.id ?? null;
 
-  if (nextStatus) {
+  const updates: { status?: string; assigned_to?: string | null } = {};
+  if (nextStatus) updates.status = nextStatus;
+  if (assignedTo !== undefined) updates.assigned_to = assignedTo || null;
+  if (Object.keys(updates).length > 0) {
     const { error: updateErr } = await supabase
       .from('complaints')
-      .update({ status: nextStatus })
+      .update(updates)
       .eq('id', complaintId);
     if (updateErr) throw new Error(updateErr.message);
   }
 
-  const action = nextStatus ? 'status_update' : 'comment';
+  const action = nextStatus ? 'status_update' : assignedTo !== undefined ? 'assignment' : 'comment';
   const descParts: string[] = [];
   if (nextStatus) {
-    descParts.push(
-      `Status: ${currentStatus ?? '—'} → ${nextStatus}`
-    );
+    descParts.push(`Status: ${currentStatus ?? '—'} → ${nextStatus}`);
+  }
+  if (assignedTo !== undefined) {
+    descParts.push(`Ditugaskan ke: ${assignedTo || '—'}`);
   }
   if (trimmedComment) {
     descParts.push(trimmedComment);
@@ -227,6 +255,7 @@ export async function followUpComplaint(input: ComplaintFollowUpInput): Promise<
     action,
     description,
     performed_by: performedBy,
+    assigned_to: assignedTo ?? null,
   });
   if (logErr) throw new Error(logErr.message);
 }

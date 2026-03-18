@@ -15,22 +15,13 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { followUpComplaint, getComplaintAuditLogs } from '../../services/complaintService';
-import type { Complaint, ComplaintAuditLog } from '../../types/complaint';
-
-const STATUS_LABELS: Record<string, string> = {
-  submitted: 'Diterima',
-  in_review: 'Dalam peninjauan',
-  resolved: 'Selesai',
-  closed: 'Ditutup',
-};
-
-const STATUS_OPTIONS = [
-  { label: 'Diterima', value: 'submitted' },
-  { label: 'Dalam peninjauan', value: 'in_review' },
-  { label: 'Selesai', value: 'resolved' },
-  { label: 'Ditutup', value: 'closed' },
-] as const;
+import {
+  followUpComplaint,
+  getComplaintAuditLogs,
+  getComplaintStatuses,
+  getProfiles,
+} from '../../services/complaintService';
+import type { Complaint, ComplaintAuditLog, ComplaintStatus, Profile } from '../../types/complaint';
 
 function formatDate(value: string | null): string {
   if (!value) return '—';
@@ -43,6 +34,10 @@ function formatDate(value: string | null): string {
   } catch {
     return value;
   }
+}
+
+function getStatusName(statuses: ComplaintStatus[], code: string): string {
+  return statuses.find((s) => s.code === code)?.name ?? code;
 }
 
 export interface TindakanPengaduanModalProps {
@@ -59,13 +54,18 @@ export default function TindakanPengaduanModal({
   onClose,
   onSaved,
 }: TindakanPengaduanModalProps) {
+  const [statuses, setStatuses] = useState<ComplaintStatus[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [nextStatus, setNextStatus] = useState('');
+  const [assignedTo, setAssignedTo] = useState<string>('');
   const [comment, setComment] = useState('');
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [logs, setLogs] = useState<ComplaintAuditLog[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
+
+  const isResolved = complaint?.status === 'resolved';
+  const readonly = isResolved;
 
   const loadLogs = useCallback(async (complaintId: string) => {
     setLogsLoading(true);
@@ -80,11 +80,25 @@ export default function TindakanPengaduanModal({
   }, []);
 
   useEffect(() => {
+    if (!open) return;
+    (async () => {
+      try {
+        const [s, p] = await Promise.all([getComplaintStatuses(), getProfiles()]);
+        setStatuses(s);
+        setProfiles(p);
+      } catch {
+        setStatuses([]);
+        setProfiles([]);
+      }
+    })();
+  }, [open]);
+
+  useEffect(() => {
     if (!open || !complaint) return;
-    setNextStatus(complaint.status ?? '');
+    setNextStatus('');
+    setAssignedTo(complaint.assigned_to ?? '');
     setComment('');
     setActionError(null);
-    setActionSuccess(null);
     void loadLogs(complaint.id);
   }, [open, complaint, loadLogs]);
 
@@ -97,17 +111,17 @@ export default function TindakanPengaduanModal({
     if (!complaint) return;
     setSaving(true);
     setActionError(null);
-    setActionSuccess(null);
     try {
       const statusChanged = nextStatus && nextStatus !== complaint.status;
+      const assignedChanged = assignedTo !== (complaint.assigned_to ?? '');
       await followUpComplaint({
         complaintId: complaint.id,
         nextStatus: statusChanged ? nextStatus : undefined,
-        comment,
+        comment: readonly ? undefined : comment,
+        assignedTo: assignedChanged ? assignedTo || null : undefined,
       });
-      setActionSuccess('Tindakan tersimpan.');
       await onSaved();
-      await loadLogs(complaint.id);
+      onClose();
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Gagal menyimpan tindakan.');
     } finally {
@@ -115,17 +129,20 @@ export default function TindakanPengaduanModal({
     }
   };
 
+  const statusOptions = statuses.filter((s) => s.code !== (complaint?.status ?? ''));
+  const currentStatusName = complaint ? getStatusName(statuses, complaint.status) : '';
+
   return (
     <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-      <DialogTitle>Tindakan Pengaduan</DialogTitle>
+      <DialogTitle>Tindakan Pengaduan - {complaint?.complaint_number}</DialogTitle>
       <DialogContent sx={{ pt: 1 }}>
         {complaint && (
           <Paper variant="outlined" sx={{ p: 2, borderRadius: 2, mb: 2 }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-              {complaint.complaint_number}
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
               {complaint.title}
+            </Typography>
+            <Typography variant="body2" color="text.secondary" align='justify'>
+              {complaint.description}
             </Typography>
           </Paper>
         )}
@@ -145,22 +162,47 @@ export default function TindakanPengaduanModal({
             label="Update Status"
             value={nextStatus}
             onChange={(e) => setNextStatus(e.target.value)}
-            disabled={!complaint}
+            disabled={!complaint || readonly}
           >
-            {STATUS_OPTIONS.map((s) => (
-              <MenuItem key={s.value} value={s.value}>
-                {s.label}
+            {statusOptions.map((s) => (
+              <MenuItem key={s.id} value={s.code}>
+                {s.name}
               </MenuItem>
             ))}
+            {statusOptions.length === 0 && (
+              <MenuItem value="" disabled>
+                Tidak ada status lain
+              </MenuItem>
+            )}
           </TextField>
           <TextField
             fullWidth
             size="small"
             label="Status saat ini"
-            value={complaint ? `${STATUS_LABELS[complaint.status] ?? complaint.status}` : ''}
+            value={currentStatusName}
             disabled
           />
         </Box>
+
+        <TextField
+          select
+          fullWidth
+          size="small"
+          label="Tugaskan ke"
+          value={assignedTo}
+          onChange={(e) => setAssignedTo(e.target.value)}
+          disabled={!complaint || readonly}
+          sx={{ mb: 2 }}
+        >
+          <MenuItem value="">
+            <em>Tidak ditugaskan</em>
+          </MenuItem>
+          {profiles.map((p) => (
+            <MenuItem key={p.id} value={p.user_id}>
+              {p.role ? `${p.role} (${p.user_id.slice(0, 8)}…)` : p.user_id}
+            </MenuItem>
+          ))}
+        </TextField>
 
         <TextField
           fullWidth
@@ -170,17 +212,18 @@ export default function TindakanPengaduanModal({
           onChange={(e) => setComment(e.target.value)}
           minRows={4}
           multiline
-          disabled={!complaint}
+          disabled={!complaint || readonly}
         />
+
+        {readonly && (
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
+            Pengaduan ini sudah Selesai. Semua bidang hanya untuk dibaca.
+          </Typography>
+        )}
 
         {actionError && (
           <Alert severity="error" sx={{ mt: 2 }} onClose={() => setActionError(null)}>
             {actionError}
-          </Alert>
-        )}
-        {actionSuccess && (
-          <Alert severity="success" sx={{ mt: 2 }} onClose={() => setActionSuccess(null)}>
-            {actionSuccess}
           </Alert>
         )}
 
@@ -221,9 +264,15 @@ export default function TindakanPengaduanModal({
         <Button onClick={handleClose} disabled={saving}>
           Tutup
         </Button>
-        <Button variant="contained" onClick={() => void handleSave()} disabled={saving || !complaint}>
-          {saving ? 'Menyimpan…' : 'Simpan tindakan'}
-        </Button>
+        {!readonly && (
+          <Button
+            variant="contained"
+            onClick={() => void handleSave()}
+            disabled={saving || !complaint}
+          >
+            {saving ? 'Menyimpan…' : 'Simpan tindakan'}
+          </Button>
+        )}
       </DialogActions>
     </Dialog>
   );

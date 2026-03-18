@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import {
   Alert,
@@ -21,16 +21,9 @@ import {
 } from '@mui/material';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import { getComplaintByNumberAndPassword } from '../../services/complaintService';
+import { getComplaintByNumberAndPassword, getComplaintStatuses } from '../../services/complaintService';
 import { getSeverityColor } from '../../utils/severity';
-import type { Complaint } from '../../types/complaint';
-
-const statusLabels: Record<string, string> = {
-  submitted: 'Diterima',
-  in_review: 'Dalam peninjauan',
-  resolved: 'Selesai',
-  closed: 'Ditutup',
-};
+import type { Complaint, ComplaintStatus } from '../../types/complaint';
 
 const severityLabels: Record<string, string> = {
   low: 'Rendah',
@@ -61,6 +54,13 @@ export default function TrackComplaint() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [complaint, setComplaint] = useState<Complaint | null>(null);
+  const [statuses, setStatuses] = useState<ComplaintStatus[]>([]);
+
+  useEffect(() => {
+    getComplaintStatuses()
+      .then(setStatuses)
+      .catch(() => setStatuses([]));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,9 +83,10 @@ export default function TrackComplaint() {
 
   const detailRows = useMemo(() => {
     if (!complaint) return [];
+    const statusName = statuses.find((s) => s.code === complaint.status)?.name ?? complaint.status;
     return [
       { label: 'Nomor Pengaduan', value: complaint.complaint_number, bold: true },
-      { label: 'Status', value: statusLabels[complaint.status] ?? complaint.status, bold: true },
+      { label: 'Status', value: statusName ?? '—', bold: true },
       { label: 'Assigned to', value: complaint.assigned_to || '—' },
       { label: 'Resolution result', value: complaint.resolution || '—', long: true },
       { label: 'Updated at', value: formatDate(complaint.updated_at) },
@@ -110,7 +111,7 @@ export default function TrackComplaint() {
       },
       { label: 'Diterima pada', value: formatDate(complaint.created_at) },
     ];
-  }, [complaint]);
+  }, [complaint, statuses]);
 
   return (
     <Box

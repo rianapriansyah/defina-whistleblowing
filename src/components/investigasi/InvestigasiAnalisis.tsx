@@ -25,9 +25,9 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import type { Dayjs } from 'dayjs';
 import 'dayjs/locale/id';
-import { searchComplaints } from '../../services/complaintService';
+import { getComplaintStatuses, searchComplaints } from '../../services/complaintService';
 import { getSeverityColor } from '../../utils/severity';
-import type { Complaint } from '../../types/complaint';
+import type { Complaint, ComplaintStatus } from '../../types/complaint';
 import TindakanPengaduanModal from './TindakanPengaduanModal';
 
 const CATEGORY_OPTIONS = ['Penipuan', 'Korupsi', 'Pelecehan', 'Diskriminasi', 'Keselamatan', 'Lainnya'];
@@ -38,13 +38,6 @@ const SEVERITY_OPTIONS = [
   { label: 'Tinggi', value: 'high' },
   { label: 'Kritis', value: 'critical' },
 ];
-
-const STATUS_LABELS: Record<string, string> = {
-  submitted: 'Diterima',
-  in_review: 'Dalam peninjauan',
-  resolved: 'Selesai',
-  closed: 'Ditutup',
-};
 
 const PAGE_SIZE_OPTIONS = [10, 20, 30] as const;
 
@@ -79,8 +72,15 @@ export default function InvestigasiAnalisis() {
 
   const [actionOpen, setActionOpen] = useState(false);
   const [activeComplaint, setActiveComplaint] = useState<Complaint | null>(null);
+  const [statuses, setStatuses] = useState<ComplaintStatus[]>([]);
 
   const urlQueryKey = searchParams.toString();
+
+  useEffect(() => {
+    getComplaintStatuses()
+      .then(setStatuses)
+      .catch(() => setStatuses([]));
+  }, []);
 
   useEffect(() => {
     const sp = new URLSearchParams(urlQueryKey);
@@ -229,7 +229,8 @@ export default function InvestigasiAnalisis() {
         field: 'status',
         headerName: 'Status',
         width: 130,
-        valueGetter: (_v, row) => STATUS_LABELS[row.status] ?? row.status,
+        valueGetter: (_v, row) =>
+          statuses.find((s) => s.code === row.status)?.name ?? row.status ?? '—',
       },
       {
         field: 'reporter_user_id',
@@ -277,7 +278,7 @@ export default function InvestigasiAnalisis() {
         ),
       },
     ],
-    [showActionHeader]
+    [showActionHeader, statuses]
   );
 
   const rows = useMemo(

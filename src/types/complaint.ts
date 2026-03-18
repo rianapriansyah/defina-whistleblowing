@@ -47,6 +47,26 @@ export interface ComplaintAuditLog {
   action: string | null;
   description: string | null;
   performed_by: string | null;
+  assigned_to: string | null;
+  created_at: string | null;
+}
+
+/** From complaint_statuses table (code used in complaints.status). */
+export interface ComplaintStatus {
+  id: string;
+  code: string;
+  name: string;
+  description: string | null;
+  is_final: boolean | null;
+  sequence: number | null;
+  created_at: string | null;
+}
+
+/** From profiles table; user_id links to auth. */
+export interface Profile {
+  id: number;
+  user_id: string;
+  role: string | null;
   created_at: string | null;
 }
 
