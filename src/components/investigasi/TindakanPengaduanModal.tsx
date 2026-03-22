@@ -23,6 +23,14 @@ import {
 } from '../../services/complaintService';
 import type { Complaint, ComplaintAuditLog, ComplaintStatus, Profile } from '../../types/complaint';
 
+const SEVERITY_SELECT_OPTIONS = [
+  { label: 'Belum ditetapkan', value: '' },
+  { label: 'Rendah', value: 'low' },
+  { label: 'Sedang', value: 'medium' },
+  { label: 'Tinggi', value: 'high' },
+  { label: 'Kritis', value: 'critical' },
+] as const;
+
 function formatDate(value: string | null): string {
   if (!value) return '—';
   try {
@@ -59,6 +67,7 @@ export default function TindakanPengaduanModal({
   const [nextStatus, setNextStatus] = useState('');
   const [assignedTo, setAssignedTo] = useState<string>('');
   const [comment, setComment] = useState('');
+  const [severityDraft, setSeverityDraft] = useState('');
   const [saving, setSaving] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [logs, setLogs] = useState<ComplaintAuditLog[]>([]);
@@ -98,6 +107,7 @@ export default function TindakanPengaduanModal({
     setNextStatus('');
     setAssignedTo(complaint.assigned_to ?? '');
     setComment('');
+    setSeverityDraft(complaint.severity ? complaint.severity.toLowerCase() : '');
     setActionError(null);
     void loadLogs(complaint.id);
   }, [open, complaint, loadLogs]);
@@ -114,11 +124,15 @@ export default function TindakanPengaduanModal({
     try {
       const statusChanged = nextStatus && nextStatus !== complaint.status;
       const assignedChanged = assignedTo !== (complaint.assigned_to ?? '');
+      const nextSev = severityDraft === '' ? null : severityDraft;
+      const prevSev = complaint.severity?.toLowerCase() ?? null;
+      const severityChanged = nextSev !== prevSev;
       await followUpComplaint({
         complaintId: complaint.id,
         nextStatus: statusChanged ? nextStatus : undefined,
         comment: readonly ? undefined : comment,
         assignedTo: assignedChanged ? assignedTo || null : undefined,
+        nextSeverity: severityChanged ? nextSev : undefined,
       });
       await onSaved();
       onClose();
@@ -183,6 +197,24 @@ export default function TindakanPengaduanModal({
             disabled
           />
         </Box>
+
+        <TextField
+          select
+          fullWidth
+          size="small"
+          label="Tingkat keparahan"
+          value={severityDraft}
+          onChange={(e) => setSeverityDraft(e.target.value)}
+          disabled={!complaint || readonly}
+          sx={{ mb: 0.5 }}
+          helperText="Ditetapkan oleh admin berdasarkan dokumentasi penilaian manual."
+        >
+          {SEVERITY_SELECT_OPTIONS.map((s) => (
+            <MenuItem key={s.value || 'unset'} value={s.value}>
+              {s.label}
+            </MenuItem>
+          ))}
+        </TextField>
 
         <TextField
           select

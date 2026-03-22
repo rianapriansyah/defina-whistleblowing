@@ -64,7 +64,6 @@ export default function InvestigasiAnalisis() {
   const [incidentDate, setIncidentDate] = useState<Dayjs | null>(null);
   const [category, setCategory] = useState('');
   const [severity, setSeverity] = useState('');
-  const [nip, setNip] = useState('');
   const [loading, setLoading] = useState(true);
   const [results, setResults] = useState<Complaint[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -122,7 +121,6 @@ export default function InvestigasiAnalisis() {
         incidentDate: incidentDateStr,
         category: category || undefined,
         severity: severity || undefined,
-        nip: nip.trim() || undefined,
       });
       setResults(data);
       setPaginationModel((m) => ({ ...m, page: 0 }));
@@ -132,7 +130,7 @@ export default function InvestigasiAnalisis() {
     } finally {
       setLoading(false);
     }
-  }, [keyword, incidentDate, category, severity, nip]);
+  }, [keyword, incidentDate, category, severity]);
 
   const openAction = (row: Complaint) => {
     setActiveComplaint(row);
@@ -149,7 +147,6 @@ export default function InvestigasiAnalisis() {
     setIncidentDate(null);
     setCategory('');
     setSeverity('');
-    setNip('');
     setExpanded(false);
     setPaginationModel({ page: 0, pageSize: 10 });
     const path = '/investigasi-analisis';
@@ -233,10 +230,16 @@ export default function InvestigasiAnalisis() {
           statuses.find((s) => s.code === row.status)?.name ?? row.status ?? '—',
       },
       {
-        field: 'reporter_user_id',
-        headerName: 'NIP',
-        width: 120,
-        valueGetter: (_v, row) => row.reporter_user_id || '—',
+        field: 'reporter_status_id',
+        headerName: 'Status Pelapor',
+        width: 160,
+        valueGetter: (_v, row) => row.reporter_statuses?.name || '—',
+      },
+      {
+        field: 'reporter_unit_kerja',
+        headerName: 'Unit Kerja',
+        width: 140,
+        valueGetter: (_v, row) => row.reporter_unit_kerja || '—',
       },
       {
         field: 'created_at',
@@ -361,7 +364,7 @@ export default function InvestigasiAnalisis() {
               <Box
                 sx={{
                   display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr 1fr' },
+                  gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr' },
                   gap: 2,
                   mt: 2,
                   pt: 2,
@@ -409,14 +412,6 @@ export default function InvestigasiAnalisis() {
                     </MenuItem>
                   ))}
                 </TextField>
-                <TextField
-                  fullWidth
-                  size="small"
-                  label="NIP"
-                  value={nip}
-                  onChange={(e) => setNip(e.target.value)}
-                  placeholder="Nomor Induk Pegawai"
-                />
               </Box>
             </Collapse>
           </Box>

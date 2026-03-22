@@ -1,5 +1,14 @@
 export type ComplaintSeverity = 'low' | 'medium' | 'high' | 'critical';
 
+/** From reporter_statuses table (maps to complaints.reporter_status_id). */
+export interface ReporterStatus {
+  id: string;
+  code: string;
+  name: string;
+  sequence: number | null;
+  created_at: string | null;
+}
+
 export interface ComplaintInsertPayload {
   isAnonymous: boolean;
   title: string;
@@ -7,12 +16,12 @@ export interface ComplaintInsertPayload {
   incidentDate?: string;
   location?: string;
   category?: string;
-  severity?: ComplaintSeverity;
   reporterName?: string;
   reporterEmail?: string;
   reporterPhone?: string;
-  /** Nomor Induk Pegawai (stored in reporter_user_id when non-anonymous). */
-  reporterNip?: string;
+  /** FK to reporter_statuses when non-anonymous. */
+  reporterStatusId?: string;
+  reporterUnitKerja?: string;
   /** Files to upload (jpg, png, pdf only). */
   files?: File[];
 }
@@ -22,10 +31,13 @@ export interface Complaint {
   complaint_number: string;
   complaint_password_hash: string;
   is_anonymous: boolean;
-  reporter_user_id: string | null;
+  reporter_status_id: string | null;
+  reporter_unit_kerja: string | null;
   reporter_name: string | null;
   reporter_email: string | null;
   reporter_phone: string | null;
+  /** Populated when selecting with reporter_statuses join. */
+  reporter_statuses?: { code: string; name: string } | null;
   title: string;
   description: string;
   incident_date: string | null;

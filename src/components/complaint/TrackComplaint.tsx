@@ -97,6 +97,11 @@ export default function TrackComplaint() {
       { label: 'Lokasi', value: complaint.location || '—' },
       { label: 'Kategori', value: complaint.category || '—' },
       {
+        label: 'Status pelapor',
+        value: complaint.reporter_statuses?.name ?? '—',
+      },
+      { label: 'Unit kerja', value: complaint.reporter_unit_kerja || '—' },
+      {
         label: 'Tingkat keparahan',
         value: complaint.severity ? (
           <Chip

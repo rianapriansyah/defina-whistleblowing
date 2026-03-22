@@ -1,9 +1,10 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import {
   Alert,
   Box,
   Button,
+  Checkbox,
   Dialog,
   DialogActions,
   DialogContent,
@@ -29,19 +30,12 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import type { Dayjs } from 'dayjs';
 import 'dayjs/locale/id';
 import DeleteOutline from '@mui/icons-material/DeleteOutline';
-import type { ComplaintSeverity } from '../../types/complaint';
-import { createComplaint } from '../../services/complaintService';
+import { createComplaint, getReporterStatuses } from '../../services/complaintService';
+import type { ReporterStatus } from '../../types/complaint';
 import { isAllowedFile } from '../../helpers/fileValidation';
 
 const ACCEPT_FILE_TYPES = '.jpg,.jpeg,.png,.pdf';
 const MAX_FILE_SIZE_MB = 10;
-
-const severityOptions: { label: string; value: ComplaintSeverity }[] = [
-  { label: 'Rendah', value: 'low' },
-  { label: 'Sedang', value: 'medium' },
-  { label: 'Tinggi', value: 'high' },
-  { label: 'Kritis', value: 'critical' },
-];
 
 const categoryOptions = [
   'Penipuan',
@@ -59,11 +53,13 @@ const Complaint: React.FC = () => {
   const [incidentDate, setIncidentDate] = useState<Dayjs | null>(null);
   const [location, setLocation] = useState('');
   const [category, setCategory] = useState('');
-  const [severity, setSeverity] = useState<ComplaintSeverity | ''>('');
   const [reporterName, setReporterName] = useState('');
   const [reporterEmail, setReporterEmail] = useState('');
   const [reporterPhone, setReporterPhone] = useState('');
-  const [reporterNip, setReporterNip] = useState('');
+  const [reporterStatusId, setReporterStatusId] = useState('');
+  const [reporterUnitKerja, setReporterUnitKerja] = useState('');
+  const [reporterStatuses, setReporterStatuses] = useState<ReporterStatus[]>([]);
+  const [declarationAccepted, setDeclarationAccepted] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const [fileError, setFileError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -74,6 +70,12 @@ const Complaint: React.FC = () => {
     complaintNumber: string;
     complaintPassword: string;
   } | null>(null);
+
+  useEffect(() => {
+    getReporterStatuses()
+      .then(setReporterStatuses)
+      .catch(() => setReporterStatuses([]));
+  }, []);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -91,11 +93,11 @@ const Complaint: React.FC = () => {
         incidentDate: incidentDate ? incidentDate.format('YYYY-MM-DD') : undefined,
         location: location || undefined,
         category: category || undefined,
-        severity: (severity || undefined) as ComplaintSeverity | undefined,
         reporterName: isAnonymous ? undefined : reporterName.trim() || undefined,
         reporterEmail: isAnonymous ? undefined : reporterEmail.trim() || undefined,
         reporterPhone: isAnonymous ? undefined : reporterPhone.trim() || undefined,
-        reporterNip: isAnonymous ? undefined : reporterNip.trim() || undefined,
+        reporterStatusId: isAnonymous ? undefined : reporterStatusId.trim() || undefined,
+        reporterUnitKerja: isAnonymous ? undefined : reporterUnitKerja.trim() || undefined,
         files: files.length > 0 ? files : undefined,
       });
 
@@ -109,11 +111,12 @@ const Complaint: React.FC = () => {
       setIncidentDate(null);
       setLocation('');
       setCategory('');
-      setSeverity('');
       setReporterName('');
       setReporterEmail('');
       setReporterPhone('');
-      setReporterNip('');
+      setReporterStatusId('');
+      setReporterUnitKerja('');
+      setDeclarationAccepted(false);
       setFiles([]);
       setFileError(null);
       setIsAnonymous(true);
@@ -152,15 +155,15 @@ const Complaint: React.FC = () => {
     description.trim() !== '' &&
     incidentDate !== null &&
     location.trim() !== '' &&
-    category !== '' &&
-    severity !== '';
+    category !== '';
   const reporterFilled =
     isAnonymous ||
     (reporterName.trim() !== '' &&
       reporterEmail.trim() !== '' &&
       reporterPhone.trim() !== '' &&
-      reporterNip.trim() !== '');
-  const isFormValid = baseMandatoryFilled && reporterFilled;
+      reporterStatusId.trim() !== '' &&
+      reporterUnitKerja.trim() !== '');
+  const isFormValid = baseMandatoryFilled && reporterFilled && declarationAccepted;
 
   const handleDownloadCredentials = (complaintNumber: string, complaintPassword: string) => {
     const text = `Nomor Pengaduan: ${complaintNumber}\nPassword Pengaduan: ${complaintPassword}\n\nSimpan informasi ini untuk melacak status pengaduan Anda.`;
@@ -236,11 +239,29 @@ const Complaint: React.FC = () => {
                     onChange={(e) => setReporterName(e.target.value)}
                   />
                   <TextField
-                    label="Nomor Induk Pegawai (NIP)"
+                    select
+                    label="Status Pelapor"
                     fullWidth
                     required
-                    value={reporterNip}
-                    onChange={(e) => setReporterNip(e.target.value)}
+                    value={reporterStatusId}
+                    onChange={(e) => setReporterStatusId(e.target.value)}
+                  >
+                    <MenuItem value="">
+                      <em>Pilih status pelapor</em>
+                    </MenuItem>
+                    {reporterStatuses.map((s) => (
+                      <MenuItem key={s.id} value={s.id}>
+                        {s.name}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                  <TextField
+                    label="Unit Kerja"
+                    fullWidth
+                    required
+                    value={reporterUnitKerja}
+                    onChange={(e) => setReporterUnitKerja(e.target.value)}
+                    placeholder="Nama unit atau departemen"
                   />
                   <TextField
                     label="Email"
@@ -307,26 +328,6 @@ const Complaint: React.FC = () => {
                 {categoryOptions.map((c) => (
                   <MenuItem key={c} value={c}>
                     {c}
-                  </MenuItem>
-                ))}
-              </TextField>
-
-              <TextField
-                select
-                label="Tingkat keparahan"
-                fullWidth
-                required
-                value={severity}
-                onChange={(e) =>
-                  setSeverity(e.target.value as ComplaintSeverity | '')
-                }
-              >
-                <MenuItem value="">
-                  <em>Pilih tingkat keparahan</em>
-                </MenuItem>
-                {severityOptions.map((s) => (
-                  <MenuItem key={s.value} value={s.value}>
-                    {s.label}
                   </MenuItem>
                 ))}
               </TextField>
@@ -425,14 +426,44 @@ const Complaint: React.FC = () => {
               </DialogActions>
             </Dialog>
 
-            <Box sx={{ mt: 3, textAlign: 'right' }}>
-              <Button
-                type="submit"
-                variant="contained"
-                disabled={!isFormValid || submitting}
-              >
-                {submitting ? 'Mengirim…' : 'Kirim pengaduan'}
-              </Button>
+            <Box sx={{ mt: 3 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={declarationAccepted}
+                    onChange={(e) => setDeclarationAccepted(e.target.checked)}
+                    color="primary"
+                    size="small"
+                    sx={{ alignSelf: 'center' }}
+                  />
+                }
+                label={
+                  <Typography variant="body2" component="span" sx={{ lineHeight: 1.5 }}>
+                    Saya menyatakan bahwa informasi yang saya sampaikan adalah benar sesuai dengan
+                    pengetahuan saya.
+                  </Typography>
+                }
+                sx={{
+                  alignItems: 'center',
+                  ml: 0,
+                  mb: 2,
+                  gap: 1,
+                }}
+              />
+              <Box sx={{ textAlign: 'right' }}>
+                <Button
+                  type="submit"
+                  variant="contained"
+                  disabled={!isFormValid || submitting}
+                >
+                  {submitting ? 'Mengirim…' : 'Kirim pengaduan'}
+                </Button>
+              </Box>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                Rumah sakit menjamin kerahasiaan identitas pelapor serta memberikan perlindungan terhadap
+                segala bentuk intimidasi atau pembalasan kepada pelapor yang menyampaikan laporan dengan
+                itikad baik.
+              </Typography>
             </Box>
           </Box>
         </Paper>
