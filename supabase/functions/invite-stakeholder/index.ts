@@ -38,23 +38,30 @@ Deno.serve(async (req) => {
   }
 
   const token = authHeader.slice('Bearer '.length).trim();
-  const supabaseAdmin = createClient(supabaseUrl, serviceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
 
-  const {
-    data: { user },
-    error: authErr,
-  } = await supabaseAdmin.auth.getUser(token);
-
-  if (authErr || !user) {
+  // Decode JWT payload to extract claims without an HTTP round-trip
+  let jwtPayload: Record<string, unknown>;
+  try {
+    const payloadB64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    jwtPayload = JSON.parse(atob(payloadB64)) as Record<string, unknown>;
+  } catch {
     return jsonResponse({ error: 'Unauthorized' }, 401);
   }
 
-  const role = user.app_metadata && (user.app_metadata as Record<string, unknown>)['role'];
-  if (role !== 'admin') {
+  const userId = jwtPayload['sub'] as string | undefined;
+  const exp = jwtPayload['exp'] as number | undefined;
+  if (!userId || !exp || Math.floor(Date.now() / 1000) > exp) {
+    return jsonResponse({ error: 'Unauthorized' }, 401);
+  }
+
+  const appMeta = jwtPayload['app_metadata'] as Record<string, unknown> | undefined;
+  if (appMeta?.['role'] !== 'admin') {
     return jsonResponse({ error: 'Forbidden' }, 403);
   }
+
+  const supabaseAdmin = createClient(supabaseUrl, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
 
   let body: Record<string, unknown>;
   try {
@@ -107,7 +114,7 @@ Deno.serve(async (req) => {
     nama,
     jabatan,
     catatan,
-    invited_by: user.id,
+    invited_by: userId,
     status: 'sent',
   });
 

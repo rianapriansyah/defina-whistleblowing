@@ -212,10 +212,17 @@ export interface ComplaintFollowUpInput {
    * `null` = clear; otherwise one of low | medium | high | critical.
    */
   nextSeverity?: string | null;
+  /** Human-readable labels for the audit log description. */
+  assignedToLabel?: string | null;
+  currentStatusLabel?: string;
+  nextStatusLabel?: string;
+  currentSeverityLabel?: string | null;
+  nextSeverityLabel?: string | null;
 }
 
 export async function followUpComplaint(input: ComplaintFollowUpInput): Promise<void> {
   const { complaintId, nextStatus, comment, assignedTo, nextSeverity } = input;
+  // label fields are read directly from `input` in the description-building section below
   const trimmedComment = comment?.trim() ?? '';
 
   if (
@@ -266,14 +273,18 @@ export async function followUpComplaint(input: ComplaintFollowUpInput): Promise<
         : 'comment';
   const descParts: string[] = [];
   if (nextStatus) {
-    descParts.push(`Status: ${currentStatus ?? '—'} → ${nextStatus}`);
+    const fromLabel = input.currentStatusLabel ?? currentStatus ?? '—';
+    const toLabel = input.nextStatusLabel ?? nextStatus;
+    descParts.push(`Status: ${fromLabel} → ${toLabel}`);
   }
   if (nextSeverity !== undefined) {
-    const nextLabel = updates.severity ?? 'belum ditetapkan';
-    descParts.push(`Tingkat keparahan: ${previousSeverity ?? '—'} → ${nextLabel}`);
+    const fromLabel = input.currentSeverityLabel ?? previousSeverity ?? '—';
+    const toLabel = input.nextSeverityLabel ?? updates.severity ?? 'Belum ditetapkan';
+    descParts.push(`Tingkat keparahan: ${fromLabel} → ${toLabel}`);
   }
   if (assignedTo !== undefined) {
-    descParts.push(`Ditugaskan ke: ${assignedTo || '—'}`);
+    const toLabel = input.assignedToLabel ?? assignedTo ?? '—';
+    descParts.push(`Ditugaskan ke: ${toLabel || '—'}`);
   }
   if (trimmedComment) {
     descParts.push(trimmedComment);

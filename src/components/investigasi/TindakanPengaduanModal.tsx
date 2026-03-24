@@ -28,6 +28,20 @@ const SEVERITY_SELECT_OPTIONS = [
   { label: 'Kritis', value: 'critical' },
 ] as const;
 
+const SEVERITY_LABEL_MAP: Record<string, string> = {
+  low: 'Rendah',
+  medium: 'Sedang',
+  high: 'Tinggi',
+  critical: 'Kritis',
+};
+
+function severityLabel(value: string | null | undefined): string {
+  if (!value) return 'Belum ditetapkan';
+  return SEVERITY_LABEL_MAP[value.toLowerCase()] ?? value;
+}
+
+const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+
 function formatDate(value: string | null): string {
   if (!value) return '—';
   try {
@@ -43,6 +57,54 @@ function formatDate(value: string | null): string {
 
 function getStatusName(statuses: ComplaintStatus[], code: string): string {
   return statuses.find((s) => s.code === code)?.name ?? code;
+}
+
+function resolveDescription(
+  description: string,
+  statuses: ComplaintStatus[],
+  assignees: VerifiedStakeholderAssignee[],
+): string {
+  const assigneeMap = new Map(
+    assignees.map((a) => [
+      a.user_id,
+      a.display_name ? `${a.display_name} (${a.email})` : a.email,
+    ]),
+  );
+
+  return description
+    .split('\n\n')
+    .map((part) => {
+      // Resolve "Ditugaskan ke: <uuid>" → display name
+      const assignMatch = part.match(/^(Ditugaskan ke:\s*)(.+)$/);
+      if (assignMatch) {
+        const value = assignMatch[2].trim();
+        if (UUID_RE.test(value)) {
+          UUID_RE.lastIndex = 0;
+          const resolved = assigneeMap.get(value);
+          return `${assignMatch[1]}${resolved ?? value}`;
+        }
+        return part;
+      }
+
+      // Resolve "Status: <code> → <code>" → human-readable names
+      const statusMatch = part.match(/^(Status:\s*)(.+?)(\s*→\s*)(.+)$/);
+      if (statusMatch) {
+        const from = getStatusName(statuses, statusMatch[2].trim());
+        const to = getStatusName(statuses, statusMatch[4].trim());
+        return `${statusMatch[1]}${from}${statusMatch[3]}${to}`;
+      }
+
+      // Resolve "Tingkat keparahan: <code> → <code>" → Indonesian labels
+      const sevMatch = part.match(/^(Tingkat keparahan:\s*)(.+?)(\s*→\s*)(.+)$/);
+      if (sevMatch) {
+        const from = severityLabel(sevMatch[2].trim() === '—' ? null : sevMatch[2].trim());
+        const to = severityLabel(sevMatch[4].trim() === 'belum ditetapkan' ? null : sevMatch[4].trim());
+        return `${sevMatch[1]}${from}${sevMatch[3]}${to}`;
+      }
+
+      return part;
+    })
+    .join('\n\n');
 }
 
 export interface TindakanPengaduanModalProps {
@@ -127,12 +189,27 @@ export default function TindakanPengaduanModal({
       const nextSev = severityDraft === '' ? null : severityDraft;
       const prevSev = complaint.severity?.toLowerCase() ?? null;
       const severityChanged = nextSev !== prevSev;
+
+      const selectedAssignee = assignees.find((a) => a.user_id === assignedTo);
+      const assignedToLabel = assignedTo
+        ? selectedAssignee
+          ? selectedAssignee.display_name
+            ? `${selectedAssignee.display_name} (${selectedAssignee.email})`
+            : selectedAssignee.email
+          : assignedTo
+        : null;
+
       await followUpComplaint({
         complaintId: complaint.id,
         nextStatus: statusChanged ? nextStatus : undefined,
         comment: readonly ? undefined : comment,
         assignedTo: assignedChanged ? assignedTo || null : undefined,
         nextSeverity: severityChanged ? nextSev : undefined,
+        currentStatusLabel: getStatusName(statuses, complaint.status),
+        nextStatusLabel: statusChanged ? getStatusName(statuses, nextStatus) : undefined,
+        currentSeverityLabel: severityLabel(prevSev),
+        nextSeverityLabel: severityChanged ? severityLabel(nextSev) : undefined,
+        assignedToLabel: assignedChanged ? assignedToLabel : undefined,
       });
       await onSaved();
       onClose();
@@ -283,7 +360,11 @@ export default function TindakanPengaduanModal({
                           ? `${l.action}${l.created_at ? ` • ${formatDate(l.created_at)}` : ''}`
                           : `${l.created_at ? formatDate(l.created_at) : '—'}`
                       }
-                      secondary={l.description || '—'}
+                      secondary={
+                        l.description
+                          ? resolveDescription(l.description, statuses, assignees)
+                          : '—'
+                      }
                       secondaryTypographyProps={{ sx: { whiteSpace: 'pre-wrap' } }}
                     />
                   </ListItem>
