@@ -108,7 +108,7 @@ export default function AppLayout() {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            Defina Whistleblowing
+            RSIA Defina WBS
           </Typography>
           {user ? (
             <>
@@ -121,7 +121,7 @@ export default function AppLayout() {
             </>
           ) : (
             <Button color="inherit" component={RouterLink} to="/login" variant="outlined" sx={{ borderColor: 'inherit', color: 'inherit' }}>
-              Masuk / Daftar
+              Stakeholder
             </Button>
           )}
         </Toolbar>
