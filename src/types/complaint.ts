@@ -73,12 +73,3 @@ export interface ComplaintStatus {
   sequence: number | null;
   created_at: string | null;
 }
-
-/** From profiles table; user_id links to auth. */
-export interface Profile {
-  id: number;
-  user_id: string;
-  role: string | null;
-  created_at: string | null;
-}
-

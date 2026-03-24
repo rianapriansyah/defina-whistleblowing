@@ -1,0 +1,19 @@
+---
+description: Use Supabase MCP for Defina project operations
+globs:
+  - "**/*"
+---
+
+# Defina Supabase (MCP)
+
+For **this repository** (`defina-whistleblowing`), perform Supabase work through the **Cursor MCP server `user-supabase-defina`**, not only by telling the user to run CLI/SQL manually.
+
+Use the MCP tools as appropriate:
+
+- **Schema / DDL** → `apply_migration` (or `execute_sql` when a one-off statement is appropriate)
+- **Edge Functions** → `deploy_edge_function`, `list_edge_functions`, `get_edge_function`
+- **Discovery** → `list_migrations`, `list_tables`, `get_project_url`, `get_publishable_keys`, `get_logs`, etc.
+
+Keep local files under `supabase/migrations/` and `supabase/functions/` in sync with what you apply via MCP when possible.
+
+If an MCP call fails, report the error and retry or adjust; do not assume the user will run the same steps by hand unless MCP is unavailable.

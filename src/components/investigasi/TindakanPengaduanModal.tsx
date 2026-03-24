@@ -15,13 +15,10 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import {
-  followUpComplaint,
-  getComplaintAuditLogs,
-  getComplaintStatuses,
-  getProfiles,
-} from '../../services/complaintService';
-import type { Complaint, ComplaintAuditLog, ComplaintStatus, Profile } from '../../types/complaint';
+import { followUpComplaint, getComplaintAuditLogs, getComplaintStatuses } from '../../services/complaintService';
+import { getVerifiedStakeholdersForAssignment } from '../../services/stakeholderInviteService';
+import type { Complaint, ComplaintAuditLog, ComplaintStatus } from '../../types/complaint';
+import type { VerifiedStakeholderAssignee } from '../../types/stakeholderInvitation';
 
 const SEVERITY_SELECT_OPTIONS = [
   { label: 'Belum ditetapkan', value: '' },
@@ -63,7 +60,7 @@ export default function TindakanPengaduanModal({
   onSaved,
 }: TindakanPengaduanModalProps) {
   const [statuses, setStatuses] = useState<ComplaintStatus[]>([]);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [assignees, setAssignees] = useState<VerifiedStakeholderAssignee[]>([]);
   const [nextStatus, setNextStatus] = useState('');
   const [assignedTo, setAssignedTo] = useState<string>('');
   const [comment, setComment] = useState('');
@@ -92,12 +89,15 @@ export default function TindakanPengaduanModal({
     if (!open) return;
     (async () => {
       try {
-        const [s, p] = await Promise.all([getComplaintStatuses(), getProfiles()]);
+        const [s, stakeholders] = await Promise.all([
+          getComplaintStatuses(),
+          getVerifiedStakeholdersForAssignment(),
+        ]);
         setStatuses(s);
-        setProfiles(p);
+        setAssignees(stakeholders);
       } catch {
         setStatuses([]);
-        setProfiles([]);
+        setAssignees([]);
       }
     })();
   }, [open]);
@@ -220,7 +220,7 @@ export default function TindakanPengaduanModal({
           select
           fullWidth
           size="small"
-          label="Tugaskan ke"
+          label="Tugaskan ke (stakeholder terverifikasi)"
           value={assignedTo}
           onChange={(e) => setAssignedTo(e.target.value)}
           disabled={!complaint || readonly}
@@ -229,9 +229,10 @@ export default function TindakanPengaduanModal({
           <MenuItem value="">
             <em>Tidak ditugaskan</em>
           </MenuItem>
-          {profiles.map((p) => (
-            <MenuItem key={p.id} value={p.user_id}>
-              {p.role ? `${p.role} (${p.user_id.slice(0, 8)}…)` : p.user_id}
+          {assignees.map((s) => (
+            <MenuItem key={s.user_id} value={s.user_id}>
+              {s.display_name} · {s.email}
+              {s.jabatan ? ` · ${s.jabatan}` : ''}
             </MenuItem>
           ))}
         </TextField>

@@ -4,7 +4,6 @@ import type {
   ComplaintAuditLog,
   ComplaintInsertPayload,
   ComplaintStatus,
-  Profile,
   ReporterStatus,
 } from '../types/complaint';
 import { generateComplaintNumber, generateComplaintPassword } from '../generators/complaintGenerators';
@@ -190,13 +189,6 @@ export async function getComplaintStatuses(): Promise<ComplaintStatus[]> {
   return (data ?? []) as ComplaintStatus[];
 }
 
-export async function getProfiles(): Promise<Profile[]> {
-  const { data, error } = await supabase.from('profiles').select('*').order('id', { ascending: true });
-
-  if (error) throw new Error(error.message);
-  return (data ?? []) as Profile[];
-}
-
 export async function getComplaintAuditLogs(complaintId: string): Promise<ComplaintAuditLog[]> {
   const { data, error } = await supabase
     .from('complaint_audit_logs')
@@ -213,7 +205,7 @@ export interface ComplaintFollowUpInput {
   complaintId: string;
   nextStatus?: string;
   comment?: string;
-  /** Assign complaint to this user (profile.user_id). */
+  /** Assign complaint to this auth user (verified stakeholder UUID). */
   assignedTo?: string | null;
   /**
    * Set or clear severity (admin assessment). Omitted = leave unchanged;

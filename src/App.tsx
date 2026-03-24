@@ -5,11 +5,14 @@ import AppTheme from './theme/AppTheme';
 import { AuthProvider } from './contexts/AuthContext';
 import AppLayout from './components/layout/AppLayout';
 import Auth from './components/auth/Auth';
+import CompleteInvite from './components/auth/CompleteInvite';
 import Complaint from './components/complaint/Complaint';
 import TrackComplaint from './components/complaint/TrackComplaint';
 import Dashboard from './components/dashboard/Dashboard';
 import InvestigasiAnalisis from './components/investigasi/InvestigasiAnalisis';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import AdminRoute from './components/auth/AdminRoute';
+import InviteStakeholders from './components/admin/InviteStakeholders';
 
 const App: React.FC = () => {
   return (
@@ -18,6 +21,7 @@ const App: React.FC = () => {
         <Router>
           <Routes>
             <Route path="/login" element={<Auth />} />
+            <Route path="/auth/complete-invite" element={<CompleteInvite />} />
             <Route element={<AppLayout />}>
               <Route path="/" element={<Complaint />} />
               <Route path="/lacak-pengaduan" element={<TrackComplaint />} />
@@ -35,6 +39,14 @@ const App: React.FC = () => {
                   <ProtectedRoute>
                     <InvestigasiAnalisis />
                   </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/undang-stakeholder"
+                element={
+                  <AdminRoute>
+                    <InviteStakeholders />
+                  </AdminRoute>
                 }
               />
             </Route>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Link as RouterLink, useLocation, Outlet } from 'react-router-dom';
 import {
   AppBar,
@@ -23,23 +23,39 @@ import Send from '@mui/icons-material/Send';
 import Search from '@mui/icons-material/Search';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import FactCheck from '@mui/icons-material/FactCheck';
+import PersonAddAlt from '@mui/icons-material/PersonAddAlt';
 import { useAuth } from '../../contexts/AuthContext';
 
 const DRAWER_WIDTH = 260;
 const Offset = styled('div')(({ theme }) => theme.mixins.toolbar);
 
-const menuItems = [
+type MenuItemConfig = {
+  label: string;
+  path: string;
+  icon: React.ReactNode;
+  requiresAuth: boolean;
+  requiresAdmin?: boolean;
+};
+
+const menuItems: MenuItemConfig[] = [
   { label: 'Kirim Pengaduan', path: '/', icon: <Send />, requiresAuth: false },
   { label: 'Lacak Pengaduan', path: '/lacak-pengaduan', icon: <Search />, requiresAuth: false },
   { label: 'Dashboard', path: '/dashboard', icon: <DashboardIcon />, requiresAuth: true },
   { label: 'Investigasi & Analisis', path: '/investigasi-analisis', icon: <FactCheck />, requiresAuth: true },
+  {
+    label: 'Stakeholder',
+    path: '/admin/undang-stakeholder',
+    icon: <PersonAddAlt />,
+    requiresAuth: true,
+    requiresAdmin: true,
+  },
 ];
 
 export default function AppLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(true);
   const location = useLocation();
-  const { user, signOut } = useAuth();
+  const { user, isAdmin, signOut } = useAuth();
 
   const toggleDrawer = (open: boolean) => () => setDrawerOpen(open);
   const toggleMenu = () => setMenuOpen((prev) => !prev);
@@ -53,7 +69,13 @@ export default function AppLayout() {
         </ListItemButton>
         <Collapse in={menuOpen} timeout="auto" unmountOnExit>
           <List component="div" disablePadding>
-            {menuItems.filter((item) => !item.requiresAuth || user).map((item) => (
+            {menuItems
+              .filter((item) => {
+                if (item.requiresAdmin && !isAdmin) return false;
+                if (item.requiresAuth && !user) return false;
+                return true;
+              })
+              .map((item) => (
               <ListItemButton
                 key={item.path}
                 component={RouterLink}

@@ -1,11 +1,14 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { User, Session } from '@supabase/supabase-js';
 import supabase from '../utils/supabase';
+import { isAdminUser } from '../utils/authRole';
 
 interface AuthContextValue {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  /** True when `app_metadata.role === 'admin'` (set in Supabase Dashboard or via service role). */
+  isAdmin: boolean;
   signIn: (email: string, password: string) => Promise<{ error: { message: string } | null }>;
   signUp: (
     email: string,
@@ -70,6 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     session,
     loading,
+    isAdmin: isAdminUser(user),
     signIn,
     signUp,
     signOut,

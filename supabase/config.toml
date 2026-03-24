@@ -1,0 +1,5 @@
+# Minimal config. Set project_id when using Supabase CLI locally (`supabase link`).
+# See: https://supabase.com/docs/guides/functions
+
+[functions.invite-stakeholder]
+verify_jwt = false
