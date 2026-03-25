@@ -4,7 +4,6 @@ import {
   Alert,
   Box,
   Button,
-  Checkbox,
   Dialog,
   DialogActions,
   DialogContent,
@@ -12,6 +11,7 @@ import {
   FormControl,
   FormControlLabel,
   FormLabel,
+  Switch,
   IconButton,
   Link,
   List,
@@ -429,26 +429,19 @@ const Complaint: React.FC = () => {
             <Box sx={{ mt: 3 }}>
               <FormControlLabel
                 control={
-                  <Checkbox
+                  <Switch
                     checked={declarationAccepted}
                     onChange={(e) => setDeclarationAccepted(e.target.checked)}
                     color="primary"
-                    size="small"
-                    sx={{ alignSelf: 'center' }}
                   />
                 }
                 label={
-                  <Typography variant="body2" component="span" sx={{ lineHeight: 1.5 }}>
+                  <Typography variant="body2" sx={{ lineHeight: 1.5 }}>
                     Saya menyatakan bahwa informasi yang saya sampaikan adalah benar sesuai dengan
                     pengetahuan saya.
                   </Typography>
                 }
-                sx={{
-                  alignItems: 'center',
-                  ml: 0,
-                  mb: 2,
-                  gap: 1,
-                }}
+                sx={{ alignItems: 'center', ml: 0, mb: 2, gap: 1 }}
               />
               <Box sx={{ textAlign: 'right' }}>
                 <Button
