@@ -1,73 +1,46 @@
-# React + TypeScript + Vite
+# Defina Whistleblowing
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplikasi web untuk pengajuan pengaduan whistleblowing, pelacakan status oleh pelapor, dan penanganan oleh petugas yang terautentikasi. Antarmuka dalam Bahasa Indonesia; backend data di [Supabase](https://supabase.com/) (PostgreSQL, Auth, Storage).
 
-Currently, two official plugins are available:
+## Ringkasan spesifikasi teknis
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Frontend:** React 19, TypeScript, Vite, React Router, MUI (Material UI) termasuk Data Grid dan date pickers.
+- **Backend / data:** Supabase client (`@supabase/supabase-js`) untuk query tabel pengaduan, status, audit log, lampiran, undangan stakeholder; autentikasi email/password untuk petugas.
+- **Peran:** Pembedaan admin (mis. `app_metadata.role === 'admin'`) untuk fitur undangan stakeholder; route terlindungi untuk dashboard dan investigasi.
+- **Berkas lampiran:** Unggahan ke bucket Storage (konfigurasi lewat env, default `complaint-attachments`), dengan metadata di tabel `complaint_attachments`.
+- **Fungsi terkelola:** Edge Function `invite-stakeholder` untuk alur undangan stakeholder (secrets dan URL redirect dikonfigurasi di proyek Supabase).
+- **Pengujian:** Vitest; build: `tsc` + `vite build`.
 
-## React Compiler
+## Ringkasan spesifikasi fungsional
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Pelapor (tanpa login):** Mengisi dan mengirim pengaduan (anonim atau identitas lengkap), kategori, tanggal/lokasi kejadian, lampiran (gambar/PDF), dan pernyayaan; menerima **nomor pengaduan** dan **password** sekali pakai untuk pelacakan.
+- **Lacak pengaduan:** Pelapor memasukkan nomor + password untuk melihat status, penugasan, ringkasan penyelesaian, dan detail pengaduan.
+- **Petugas (login):** **Dashboard** ringkas jumlah pengaduan dan distribusi tingkat keparahan; **Investigasi & Analisis** untuk pencarian/filter, melihat daftar, dan membuka modal tindakan (status, keparahan, penugasan, resolusi, dll.).
+- **Administrator:** Halaman undang stakeholder (email, jabatan, catatan), daftar undangan dan ringkasan stakeholder; penerima menyelesaikan undangan lewat tautan khusus (`/auth/complete-invite`).
 
-## Expanding the ESLint configuration
+## Dokumen panduan pengguna (PDF)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+**Dokumen Panduan Penggunaan Aplikasi** (Bahasa Indonesia) disediakan sebagai PDF unduhan publik:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- **[Unduh panduan pengguna (PDF)](https://ssuzkohtxfpmqlayeais.supabase.co/storage/v1/object/public/documentation/panduan-penggunaan-defina-whistleblowing.pdf)**
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+Sumber PDF dan cara membuat ulang ada di repositori: jalankan `python scripts/generate_panduan_pdf.py` (perlu paket `fpdf2`). Salinan lokal: [`docs/panduan-penggunaan-defina-whistleblowing.pdf`](docs/panduan-penggunaan-defina-whistleblowing.pdf).
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+**Menyegarkan berkas di Storage:** jalankan (setelah migration bucket dan kebijakan Storage diterapkan):
+
+```bash
+node --env-file=.env.local scripts/upload-documentation.mjs
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Skrip memakai `SUPABASE_SERVICE_ROLE_KEY` bila ada; jika tidak, skrip akan memakai `VITE_SUPABASE_ANON_KEY` sesuai kebijakan Storage yang **hanya** mengizinkan unggah/upsert berkas bernama `panduan-penggunaan-defina-whistleblowing.pdf` pada bucket `documentation`. Untuk unggah berkas lain ke bucket tersebut, gunakan kunci service role. Lihat [`.env.example`](.env.example).
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## Pengembangan lokal
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Salin `.env.example` ke `.env.local` dan isi URL serta kunci Supabase. Lihat komentar di `.env.example` untuk Edge Function undangan dan konfigurasi admin.
+
+```bash
+npm install
+npm run dev
 ```
+
+Perintah lain: `npm run build`, `npm run lint`, `npm run test`.
